@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="UTF-8">
+   <title>Hex - Dominion Index</title>
+   <meta name="viewport" content="width=device-width, initial-scale=1">
+   <link rel="stylesheet" href="w3.css">
+</head>
+<style>
+   html, body { height: 100%; }
+   .vertical-align { display: flex; align-items: center; }
+</style>
+<body class="w3-pale-red">
+
+   <div class="vertical-align" style="height:100%">
+   <div class="w3-auto w3-center">
+
+      <img id="card" alt="Hex"
+           class="vertical-center w3-card-4 w3-round-xlarge w3-border-black"
+           style="border-width:16px; border-style:solid"
+           src="app/img_index/nocturne_back_hex.jpg"
+      />
+      <noscript class="w3-panel w3-red w3-xlarge">
+           You must enable Javascript!
+      </noscript>
+
+   </div>
+   </div>
+
+</body>
+<script>
+   var items=[
+       "badomens",
+       "delusion",
+       "envy",
+       "famine",
+       "fear",
+       "greed",
+       "haunting",
+       "locusts",
+       "misery",
+       "plague",
+       "poverty",
+       "war"
+   ];
+
+   var item=items[Math.floor(Math.random() * items.length)];
+   item="app/img_index/nocturne_hex_" + item + ".jpg";
+   document.getElementById("card").src=item;
+</script>
+</html>

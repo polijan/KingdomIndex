@@ -687,6 +687,10 @@ kingdom_label() {
 
    case $card in
 
+      # generic index card
+      01|02|03|04|05|06|07|08|09|10) label=""; return ;;
+      11) index_get; label=$INDEX; return ;;
+
       # victory cards in the kingdom pile => 8/12 cards
       castles|vineyard|greathall|tunnel|gardens|mill|island|silkroad|feodum|cemetery|duke|distantlands|harem|nobles|fairgrounds|farmland)
          n=12; [ "$BOARD_PLAYERS" -eq 2 ] && n=8;;
@@ -820,23 +824,29 @@ landscape_artifacts() {
 
 landscape_main() {
    # events/ways/projects landscape cards + boons
-   local b='' ; local h=''
+   local h=''
+   local b='' ; local l=''
    local la=''; local lb=''
-   $LANDSCAPE_BOONS && b='boon' && h='Boons'
+   if $LANDSCAPE_BOONS; then
+      b='boon'
+      h='Boons'
+      l='<a href="boon.html" class="w3-badge" target="_blank" contenteditable="false">Get Boon</a>'
+   fi
    [ -n "$LANDSCAPE_A" ] && la='<span class="w3-badge w3-red">A</span>'
    [ -n "$LANDSCAPE_B" ] && lb='<span class="w3-badge w3-red">B</span>'
-   if [ -n "$b$la$lb" ]; then
-      [ -n "$la$lb" ]  && h="${h}${h:+ + }Events/Landmarks/Ways/Projects"
+   [ -n "$la$lb" ]  && h="${h}${h:+ + }Events/Landmarks/Ways/Projects"
+   if [ -n "$h" ]; then
       landscape_header "$h"
-      card_lrow_labels '' "$la" "$lb"
-      card_lrow "$b" "$LANDSCAPE_A" "$LANDSCAPE_B"
+      card_lrow_labels "$l" "$la"          "$lb"
+      card_lrow        "$b" "$LANDSCAPE_A" "$LANDSCAPE_B"
    fi
 
    # hexes
    if $LANDSCAPE_HEXES; then
+      l='<a href="hex.html" class="w3-badge" target="_blank" contenteditable="false">Get Hex</a>'
       landscape_header 'Hexes'
-      card_lrow     'hex' 'deludedenvious' 'miserabletwicemiserable'
-      card_lrow_labels '' '(double sided)' '(double sided)'
+      card_lrow       'hex' 'deludedenvious' 'miserabletwicemiserable'
+      card_lrow_labels "$l" '(double sided)' '(double sided)'
    fi
 
    landscape_artifacts
@@ -936,15 +946,16 @@ mixed_main() {
 # [x] Dark Ages : Hermit  => Madman    pile (10)
 # [x] Dark Ages : Urchin  => Mercenary pile (10)
 # [x] Dark Ages : Bandit Camp, Marauder, and Pillage   =>   Spoils pile (15)
-# [ ] Adventures: Page    => Page's    "Travellers upgrades"  (4 piles of 5)
-# [ ] Adventures: Peasant => Peasant's "Travellers upgrades"  (4 piles of 5)
-# [ ] Nocturne  : Vampire => exchanges with Bat pile (10)
-# [ ] Nocturne  : Leprechaun and Magic Lamp (heirloom)   =>   Wish pile (12)
-# [ ] Nocturne  : Haunted Mirror                 => Ghost (spirit) pile  (6)
-# [ ] Nocturne  : Devil's Workshop and Tormentor =>   Imp (spirit) pile (13)
-# [ ] Nocturne  : The Swamp's Gift (boon) => Will-o'-Wisp (spirit) pile (12)
-# [ ] Nocturne  : Exorcist => all 3 spirit piles (Will-o'-Wisp, Imp,  Ghost)
-# [ ] Menagerie : Bargain, Cavalry, Demand, Groom, Hostelry, Livery, Paddock
+# [x] Adventures: Page    => Page's    "Travellers upgrades"  (4 piles of 5)
+# [x] Adventures: Peasant => Peasant's "Travellers upgrades"  (4 piles of 5)
+# [x] Nocturne  : Vampire => exchanges with Bat pile (10)
+# [x] Nocturne  : Leprechaun and Magic Lamp (heirloom for SecretCave)
+#                                                =>           Wish pile (12)
+# [x] Nocturne  : Haunted Mirror                 => Ghost (spirit) pile  (6)
+# [x] Nocturne  : Devil's Workshop and Tormentor =>   Imp (spirit) pile (13)
+# [x] Nocturne  : The Swamp's Gift (boon) => Will-o'-Wisp (spirit) pile (12)
+# [x] Nocturne  : Exorcist => all 3 spirit piles (Will-o'-Wisp, Imp,  Ghost)
+# [x] Menagerie : Bargain, Cavalry, Demand, Groom, Hostelry, Livery, Paddock
 #                 Ride, Scrap, Sleigh, Stampede, and Supplies =>  Horse (30)
 #
 # cards with no asterisked cost and no text distinguishing them as non-supply:
@@ -956,7 +967,16 @@ mixed_main() {
 ################################################################################
 
 nonsupply_init() {
+   NONSUPPLY_HORSES=false
    NONSUPPLY_H1=false
+}
+
+nonsupply_check() {
+   case $CARD_NAME in
+      # Horses
+      sleigh|supplies|scrap|cavalry|groom|hostelry|livery|paddock|ride|bargain|demand|stampede)
+         NONSUPPLY_HORSES=true ;;
+   esac
 }
 
 # nonsupply_header H2_HEADER
@@ -969,7 +989,7 @@ nonsupply_header() {
 }
 
 # no args. non-supply decks for Cornucopia (prizes)
-nonsupply_cornucopia() {
+nonsupply_prizes() {
    kingdom_hasnt 'Tournament' && return
    index_get
    nonsupply_header "${INDEX} Prizes"
@@ -977,44 +997,139 @@ nonsupply_cornucopia() {
    card_row       'Bag of Gold' 'Diadem'     'Followers'  'Princess'   'Trusty Steed'
 }
 
-# no args. non-supply decks for Dark Ages (madman, mercenary, spoils)
-nonsupply_darkages() {
-   local madman=false    ; kingdom_has 'Hermit' && madman=true
-   local mercenary=false ; kingdom_has 'Urchin' && mercenary=true
-   local spoils=true
-   kingdom_has 'Bandit Camp' || kingdom_has 'Marauder' ||
-   kingdom_has 'Pillage'     || spoils=false
+nonsupply_travellers_page() {
+   kingdom_hasnt 'Page' && return
+   index_get $?
+   local i1; i1=$INDEX
+   local i2; index_get; i2=$INDEX
+   local i3; index_get; i3=$INDEX
+   nonsupply_header "\"${i1} Page\" Upgrades"
+   card_row_labels "${i1}.1-10" "${i2}.1-5"       "${i2}.6-10" "${i3}.1-5" "${i3}.6-10"
+   card_row        'Page'       'Treasure Hunter' 'Warrior'    'Hero'      'Champion'
+}
+nonsupply_travellers_peasant() {
+   kingdom_hasnt 'Peasant' && return
+   index_get $?
+   local i1; i1=$INDEX
+   local i2; index_get; i2=$INDEX
+   local i3; index_get; i3=$INDEX
+   nonsupply_header "\"${i1} Peasant\" Upgrades"
+   card_row_labels "${i1}.1-10" "${i2}.1-5" "${i2}.6-10" "${i3}.1-5" "${i3}.6-10"
+   card_row        'Peasant'    'Soldier'   'Fugitive'   'Disciple'  'Teacher'
+}
 
-   if $madman || $mercenary || $spoils; then
-      nonsupply_header 'Dark Ages'
-      $madman    && madman='Madman'       || madman=''
-      $mercenary && mercenary='Mercenary' || mercenary=''
-      $spoils    && spoils='Spoils'       || spoils=''
-      card_row "$madman" "$mercenary" "$spoils" '' '' #TODO ?
-#TODO
-#      [ -n "$madman" ] && madman='#10'
-#      [ -n "$mercernary" ] && mercenary='#10'
-#      [ -n "$spoils" ] && spoils='#15'
+nonsupply_nocturne() {
+   # bat
+   local c1=''; local l1=''
+   if kingdom_has vampire; then
+      c1='wish'
+      index_get; l1="${INDEX}.1-10"
+   fi
+
+   # wish
+   local c2=''; local l2=''
+   if kingdom_has leprechaun || starthand_heirloom_has magiclamp; then
+      c2='wish'
+      index_get; l2="${INDEX}.1-12"
+   fi
+
+   # will'o wisp (spirit)
+   local c3=''; local l3=''
+   if kingdom_has exorcist || $LANDSCAPE_BOONS; then
+      c3='willowisp'
+      index_get; l3="${INDEX}.1-12"
+   fi
+
+   # imp (spirit)
+   local c4=''; local l4=''
+   if kingdom_has exorcist || kingdom_has tormentor || kingdom_has devilsworkshop; then
+      c4='imp'
+      index_get; l4="${INDEX}.1-12 + <span class=\"w3-badge\">extra</span>"
+   fi
+
+   # ghost (spirit)
+   local c5=''; local l5=''
+   if kingdom_has exorcist || starthand_heirloom_has hauntedmirror; then
+      c5='ghost'
+      index_get; l5="${INDEX}.1-6"
+   fi
+
+   if [ -n "$c1$c2$c3$c4$c5" ]; then
+      nonsupply_header 'Nocturne'
+      card_row         "$c1" "$c2" "$c3" "$c4" "$c5"
+      card_row_labels  "$l1" "$l2" "$l3" "$l4" "$l5"
    fi
 }
 
-nonsupply_travellers_page() {
-   nonsupply_header 'Pages Upgrades'
-   card_row 'Page' 'Treasure Hunter' 'Warrior' 'Hero' 'Champion'
-}
 
-nonsupply_travellers_peasant() {
-   nonsupply_header 'Peasant Upgrades'
-   card_row 'Peasant' 'Soldier' 'Fugitive' 'Disciple' 'Teacher'
+# black market (Promo) + horse (Menagerie) + Dark Ages
+nonsupply_others() {
+   local h=''
+
+   # blackmarket (TODO!!!)
+   local c1=''; local l1=''
+   if kingdom_has blackmarket; then
+      h="${h}${h:+ + }Black Market Deck"
+      c1='blackmarketdeck'
+      l1='<a href="blackmarket.html" class="w3-badge" target="_blank" contenteditable="false">Black Market</a>'
+   fi
+
+   local c2=''; local l2=''
+   if $NONSUPPLY_HORSES; then
+      h="${h}${h:+ + }Horses"
+      c2='horse'
+      index_get; l2="${INDEX}.1-12"
+      index_get; l2="${l2}, ${INDEX}.1-12"
+      index_get; l2="${l2}, ${INDEX}.1-6"
+   fi
+
+   # (dark ages) madman
+   local c3=''; local l3=''
+   if kingdom_has hermit; then
+       c3='madman'
+       index_get; l3="${INDEX}.1-10"
+    fi
+
+   # (dark ages) mercenary
+   local c4=''; local l4=''
+   if kingdom_has urchin; then
+       c4='mercenary'
+       index_get; l4="${INDEX}.1-10"
+   fi
+
+   # (dark ages) spoils
+   local c5=''; local l5=''
+   if kingdom_has banditbamp || kingdom_has marauder || kingdom_has pillage; then
+       c5='spoils'
+       index_get; l5="${INDEX}.1-12"
+       index_get; l5="${l5}, ${INDEX}.1-3"
+   fi
+
+   [ -n "$c3$c4$c5" ] && h="${h}${h:+ + }Dark Ages"
+   if [ -n "$h" ]; then
+      nonsupply_header "$h"
+      card_row         "$c1" "$c2" "$c3" "$c4" "$c5"
+      card_row_labels  "$l1" "$l2" "$l3" "$l4" "$l5"
+   fi
 }
 
 nonsupply_main() {
-   nonsupply_cornucopia
-   nonsupply_darkages
-#   nonsupply_adventures  ##TODO
-#   nonsupply_nocturne    ##TODO
-   kingdom_has 'Page'       && nonsupply_travellers_page
-   kingdom_has 'Peasant'    && nonsupply_travellers_peasant
+   # prizes fit in on row (cornucopia)
+   nonsupply_prizes
+
+   # travellers fits its own row (adventures)
+   nonsupply_travellers_page
+   nonsupply_travellers_peasant
+
+   # nocturne has up to five non-supply cards (bat, wish, 3 spirit piles)
+   # so display that in one row
+   nonsupply_nocturne
+
+   # and then one row with what's left:
+   # - black market (Promo)
+   # - Horse (Menagerie)
+   # - 3 non-supply cards from Dark Ages
+   nonsupply_others
 }
 
 
@@ -1076,18 +1191,17 @@ starthand_check() {
         # one specific heirloom: add it, and also change type
         # so that it won't get added in kindgoms
         hauntedmirror|magiclamp|goat|pasture|pouch|cursedgold|luckycoin)
-           starthand_add_heirloom "$CARD_NAME"
+           starthand_heirloom_add "$CARD_NAME"
            CARD_TYPE=heirloom ;;
 
         # kingdom cards associated with the heirlooms:
-        cemetery) starthand_add_heirloom 'hauntedmirror' ;;
-      secretcave) starthand_add_heirloom 'magiclamp'     ;;
-           pixie) starthand_add_heirloom 'goat'          ;;
-         sheperd) starthand_add_heirloom 'pasture'       ;;
-         tracker) starthand_add_heirloom 'pouch'         ;;
-           pooka) starthand_add_heirloom 'cursedgold'    ;;
-            fool) starthand_add_heirloom 'luckycoin'     ;;
-            #TODO: image for those heirloom is missing
+        cemetery) starthand_heirloom_add 'hauntedmirror' ;;
+      secretcave) starthand_heirloom_add 'magiclamp'     ;;
+           pixie) starthand_heirloom_add 'goat'          ;;
+         sheperd) starthand_heirloom_add 'pasture'       ;;
+         tracker) starthand_heirloom_add 'pouch'         ;;
+           pooka) starthand_heirloom_add 'cursedgold'    ;;
+            fool) starthand_heirloom_add 'luckycoin'     ;;
    esac
 }
 
@@ -1100,8 +1214,16 @@ starthand_finalize() {
    esac
 }
 
+starthand_heirloom_has() {
+   card_name "$1"
+   [ "$STARTHAND_C1"  = "$CARD_NAME" ] || [ "$STARTHAND_C2"  = "$CARD_NAME" ] ||
+   [ "$STARTHAND_C3"  = "$CARD_NAME" ] || [ "$STARTHAND_C4"  = "$CARD_NAME" ] ||
+   [ "$STARTHAND_C5"  = "$CARD_NAME" ] || [ "$STARTHAND_C6"  = "$CARD_NAME" ] ||
+   [ "$STARTHAND_C7"  = "$CARD_NAME" ]
+}
+
 # replace a copper in the starting hand with the given heirloom $1
-starthand_add_heirloom() {
+starthand_heirloom_add() {
    msg "replacing a Copper with an Heirloom '$1' in the starting hand"
 
    # return one copper (per player) to base cards
@@ -1209,7 +1331,7 @@ mat_check() {
       MAT_VP=true ;;
 
    # Tavern mat (Adventures: card with Reserve type & Miser)
-   coinoftherealm|ratcatcher|guide|duplicate|transmogrify|distantlands|royalcarriage|winemerchant|teacher|miser)
+   coinoftherealm|ratcatcher|guide|duplicate|transmogrify|distantlands|royalcarriage|winemerchant|miser|peasant|soldier|fugitive|disciple|teacher)
       MAT_TAVERN=true ;;
 
    # Coffers mat (Guilds and Renaissance)
@@ -1378,6 +1500,7 @@ token_finalize() {
 }
 
 token_main() {
+   token_finalize
    set --
 
    $TOKEN_COIN           && set -- "$@" cointoken
@@ -1437,6 +1560,7 @@ board_add() {
    mixed_check
    base_check
    kingdom_check
+   nonsupply_check
    starthand_check
    landscape_check
    mat_check
@@ -1470,7 +1594,7 @@ EOF
       mat_main
       token_main
 
-      echo   '<div class="w3-container w3-center">'
+      echo   '<hr><div class="w3-container w3-center">'
       printf 'Dominion Index - board for %d players (created on %s)\n' \
              "$BOARD_PLAYERS"  "$(date)"
       echo   '</div>'
