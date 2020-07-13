@@ -1,0 +1,649 @@
+#!/bin/sh
+
+# Usage: $0 [OPTIONS]... [KINGDOM]...
+# (normally, 10 kingdom cards should be given)
+# prints on stdout content of an HTML page with the board
+
+# by default Colony+Platinum base cards are included
+
+# BASE CARDS OPTIONS
+#
+# --colony[=WHEN], where WHEN could be:
+#   auto       => (default behaviour when there's no --colony flag)
+#                 choose one of the Kingdom card at random,
+#                 and if it is from Prosperity, includes Colony and Platinum
+#   yes|always => include Colonies in base cards
+#                 (--colony is equivalent to --colony=yes)
+#   no|never   => does not include Colonies base cards
+#
+# --platinum[=WHEN], WHEN could be:
+#   auto       => (THIS IS THE BEHAVIOUR AS PER DOMINION RULES)
+#                 (default behaviour when there's no --colony flag)
+#                 include if an only if colonies are included
+#   yes|always => include Platinum in base cards
+#                 (--platinum is equivalent to --platinum=yes)
+#   no|never   => does not include Platinum in base cards
+#
+# --potion     => always include potions (as per the rules, normally only
+#                 included when (at least one) kingdom cards requires it)
+#
+# --ruins[=WHEN]
+
+
+
+################################################################################
+# UTIL FUNCTIONS: to fetch graphics, etc.
+################################################################################
+
+log() { local c; c=$1; shift; printf '%b %s\n' "$c" "$*" >&2; }
+msg() { log '\033[32m[msg]\033[0m' "$*"; }
+die() { log '\033[1;31m[die]\033[0m' "$*"; exit 3; }
+
+# find a resource (or exit the program) and setup variables RES, IMG, GAME
+res() {
+   # $1 is the name of the resource
+
+   # IMG: Find image for the resource
+   IMG=$(printf %s "$1" | tr " '" '_.').jpg
+   IMG=$(find 'game' -type f -iname "$IMG")
+   [ -n "$IMG" ] || die "cannot find image for '$1'"
+
+   # RES is the name of the resource (with proper spaces, apostrophe, capitalization)
+   RES=$(basename "${IMG%.jpg}")
+   RES=$(printf %s "${RES#_}" | tr '_.' " '")
+                         # ^-- specials cards made by ourselves starts with a _ (see: _Ruins)
+
+   # GAME: Determine to which one expansion the resource belongs
+   for GAME in Dominion Intrigue Seaside Alchemy Prosperity Cornucopia \
+               Hinterlands DarkAges Guilds Adventures Empires Nocturne \
+               Renaissance Menagerie Promo
+   do
+      case $IMG in */"$GAME"*) break;; esac
+      [ "$GAME" = 'Promo' ] && GAME='UNOFFICIAL'
+   done
+}
+
+
+################################################################################
+# GLOBAL VARIABLES AND RULES THAT MODIFY THOSE VARIABLES
+################################################################################
+
+rules_init() {
+   # variables for base cards
+   POTION=auto
+   COLONY=auto
+   PLATINUM=auto
+   # also RUINS (see below)
+
+   # piles whose cards aren't all the same:
+   # 1. piles shuffled at the start of the game
+   RUINS=auto
+   KNIGHTS=false
+   # 2. split piles (order is always fixed)
+   CASTLES=false
+   CATAPULT=false
+   ENCAMPMENT=false
+   GLADIATOR=false
+   PATRICIAN=false
+   SETTLERS=false
+   SAUNA=false
+
+   # starting hands (normaly 7 Coppers + 3 Estates)
+   # - Shelters may replace the Estate
+   # - ...
+   SHELTERS=auto
+   HEIRLOOMS=false
+   START_COPPER1='Copper'
+   START_COPPER2='Copper'
+   START_COPPER3='Copper'
+   START_COPPER4='Copper'
+   START_COPPER5='Copper'
+   START_COPPER6='Copper'
+   START_COPPER7='Copper'
+   START_ESTATE1='Estate'
+   START_ESTATE2='Estate'
+   START_ESTATE3='Estate'
+
+   K1='Index_01'
+   K2='Index_02'
+   K3='Index_03'
+   K4='Index_04'
+   K5='Index_05'
+   K6='Index_06'
+   K7='Index_07'
+   K8='Index_08'
+   K9='Index_09'
+   K0='Index_10'
+}
+
+# replace a copper in the starting hand with the given heirloom $1
+add_heirloom() {
+   msg "replacing a Copper with an Heirloom '$1' in the starting hand"
+   HEIRLOOMS=true
+   [ "$START_COPPER1" = 'Copper' ] && { START_COPPER1=$1; return; }
+   [ "$START_COPPER2" = 'Copper' ] && { START_COPPER2=$1; return; }
+   [ "$START_COPPER3" = 'Copper' ] && { START_COPPER3=$1; return; }
+   [ "$START_COPPER4" = 'Copper' ] && { START_COPPER4=$1; return; }
+   [ "$START_COPPER5" = 'Copper' ] && { START_COPPER5=$1; return; }
+   [ "$START_COPPER6" = 'Copper' ] && { START_COPPER6=$1; return; }
+   [ "$START_COPPER7" = 'Copper' ] && { START_COPPER7=$1; return; }
+   die 'cannot set heirloom as starting hand has no copper'
+
+}
+
+# usage: has_kingdom CARD
+# return 0 if has the kingdom cards contain CARD, 1 otherwise
+has_kingdom() {
+   # TODO: more than 10 Kingdoms (BlackMarket, YoungWish's Bane, etc.)
+   local k
+   k=$(printf %s "$1" | tr '_.' " '")
+   [ "$K1" = "$k" ] || [ "$K2" = "$k" ] || [ "$K3" = "$k" ] ||
+   [ "$K4" = "$k" ] || [ "$K5" = "$k" ] || [ "$K6" = "$k" ] ||
+   [ "$K7" = "$k" ] || [ "$K8" = "$k" ] || [ "$K9" = "$k" ] ||
+   [ "$K0" = "$k" ]
+}
+
+# usage: add_kingdom CARD
+# function that modify the global variable to put CARD in the game
+add_kingdom() {
+   [ $# -eq 1 ] || die 'add_kingdom function takes one arg only'
+   res "$1"
+   msg "adding '$RES' to the kingdom cards"
+
+   case $RES in
+      Transmute|Vineyard|Apothecary|'Scrying Pool'|University|Alchemist|Familiar|"Philosopher's Stone"|Golem|Possession)
+         [ $POTION = true ] || msg "adding 'Potion' to base cards"
+         POTION=true ;;
+      'Death Cart'|Marauder|Cultist)
+         [ $RUINS = true ]  || msg "adding 'Ruins' to base cards"
+         RUINS=true ;;
+      Knights) KNIGHTS=true ;;
+
+      # heirlooms (Nocturne)
+           Cemetery) add_heirloom 'Haunted Mirror' ;;
+      'Secret Cave') add_heirloom 'Magic Lamp'     ;;
+              Pixie) add_heirloom 'Goat'           ;;
+            Sheperd) add_heirloom 'Pasture'        ;;
+            Tracker) add_heirloom 'Pouch'          ;;
+              Pooka) add_heirloom 'Cursed Gold'    ;;
+               Fool) add_heirloom 'Lucky Coin '    ;;
+   esac
+}
+
+# function to call when all cards have been put into the game,
+# to make sure global variables are boleean and consistent
+rules_finalize() {
+   case $POTION in
+      true) ;;
+      *) POTION=false ;;
+   esac
+   case $COLONY in
+      true|false) ;;
+      *) COLONY=false ;;
+   esac
+   case $PLATINUM in
+      true|false) ;;
+      *) PLATINUM=$COLONY ;;
+   esac
+   case $RUINS in
+      true|false) ;;
+      *) RUINS=false ;;
+   esac
+   case $SHELTERS in
+      true) START_ESTATE1='Hovel'
+            START_ESTATE2='Necropolis'
+            START_ESTATE3='Overgrown Estate' ;;
+         *) SHELTERS=false ;;
+   esac
+}
+#-------------------------------------------------------------------------------
+
+# kingdoms
+[ "$COLONY" = auto ] \
+&& case $1 in
+      Loan|Trade_Route|Watchtower|Bishop|Monument|Quarry|Talisman|Workers_Village|City|Contraband|Counting_House|Mint|Mountebank|Rabble|Royal_Seal|Vault|Venture|Goons|Grand_Market|Hoard|Bank|Expand|Forge|Kings_Court|Peddler)
+         COLONY=true  ;;
+      *) COLONY=false ;;
+   esac
+# as per official platinum is there onll when there are colonies
+# (for the moment, this is not tweakable)
+PLATINUM=$COLONY
+
+
+# TODO ????????
+kingdom() {
+#   res "$1"
+   case $RES in
+      # Potion (Alchemy)
+      Transmute|Vineyard|Apothecary|'Scrying Pool'|University|Alchemist|Familiar|"Philosopher's Stone"|Golem|Possession)
+         POTION=true ;;
+
+      # Ruins ()
+      'Death Cart'|Marauder|Cultist)
+         RUINS=true;
+   esac
+#  html_card "$RES" "$IMG"
+}
+
+
+# PARSE SCRIPT ARGUMENTS AND SET RULES ACCORDING TO GIVEN FLAGS
+
+rules_init
+
+while true; do
+   case $1 in
+      --potion|--potion=yes|--potion=always) POTION=true  ;;
+                                --potion=no) POTION=auto  ;;
+      --colony|--colony=yes|--colony=always) COLONY=true  ;;
+                 --colony=no|--colony=never) COLONY=false ;;
+                              --colony=auto) COLONY=auto  ;;
+       -*) die "unrecognized option: $1" ;;
+        *) break ;;
+   esac
+   shift
+done
+
+[ $# -gt  10 ] && die "too many arguments ($#)"
+[ -n "$1"    ] && { add_kingdom "$1"   ; K1=$1    ;}
+[ -n "$2"    ] && { add_kingdom "$2"   ; K2=$2    ;}
+[ -n "$3"    ] && { add_kingdom "$3"   ; K3=$3    ;}
+[ -n "$4"    ] && { add_kingdom "$4"   ; K4=$4    ;}
+[ -n "$5"    ] && { add_kingdom "$5"   ; K5=$5    ;}
+[ -n "$6"    ] && { add_kingdom "$6"   ; K6=$6    ;}
+[ -n "$7"    ] && { add_kingdom "$7"   ; K7=$7    ;}
+[ -n "$8"    ] && { add_kingdom "$8"   ; K8=$8    ;}
+[ -n "$9"    ] && { add_kingdom "$9"   ; K9=$9    ;}
+[ -n "${10}" ] && { add_kingdom "${10}"; K0=${10} ;}
+
+
+SHELTERS=true; #TODO: DEBUG/DELETE
+
+rules_finalize
+
+
+################################################################################
+# OUTPUT FUNCTIONS FOR HTML COMPONENTS       (begin, end, etc.)
+# AND FOR GAME ELEMENTS (cards, row of 5 cards, landscape, ...)
+################################################################################
+
+html_begin() {
+cat << EOF
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Board - Dominion Index</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="w3.css">
+  <style>
+    .card {
+       width:100%
+    }
+  </style>
+</head>
+<body>
+  <div class="w3-auto">
+EOF
+}
+
+html_end() {
+   echo '</div></body></html>'
+}
+
+html_5cards() {
+   # usage: html_5cards card1 card2 card3 card4 card5
+   # display a row of card
+   [ $# -eq 5 ] || die 'need 5 arguments'
+   echo '<div class="w3-cell-row">'
+   html_card "$1"
+   html_card "$2"
+   html_card "$3"
+   html_card "$4"
+   html_card "$5"
+   echo '</div>'
+}
+html_card() {
+   # usage: html_card [--no-cell] title image
+   #    or  html_card [--no-cell] resource
+   #
+   # show a card given by its title & name or found by a resource string
+   # card is shown in a 'w3-cell' unless --no-cell is specified)
+   local title
+   local img
+
+   local cell=true
+   [ "$1" = '--no-cell' ] && { cell=false; shift; }
+
+   case $# in
+     1) if [ -n "$1" ]; then
+           res "$1"; title=$RES; img=$IMG
+        fi ;;
+     2) [ -n "$1" ] || die 'card is null but you gave two arguments'
+        title=$1; img=$2 ;;
+     *) die "card function: wrong number of args ($#)" ;;
+   esac
+
+   $cell && echo    '<div class="w3-cell">'
+   echo             '   <div style="padding:3px">'
+   if [ -z "$1" ]; then
+      echo          '      <img style="width:220px" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=">'
+   else
+      printf        '      <a href="%s">\n' "$img"
+      echo          '         <img class="w3-round-xlarge w3-hover-sepia"'
+      echo          '              style="width:220px"'
+      printf        '              src="%s" alt="%s" />\n' "$img" "$title"
+      echo          '      </a>'
+   fi
+   echo             '   </div>'
+   $cell && echo    '</div>'
+
+}
+
+
+
+################################################################################
+
+
+
+html_begin
+
+#####################################################################
+# BASE CARDS
+# (Basic Treasures and Victories, Curses, Ruins)
+#####################################################################
+
+# display base cards
+html_base() {
+   # If possible we'd like to keep 2 lines of 5 cards
+   #       [Line1]:  Copper Silver Gold     [slot4]  [slot5]
+   #       [Line2]:  Estate Duchy  Province [slot4]  Curse
+   # we have 3 slots and 4 conditional cards: Platinum, Colony, Potion, Ruins
+   # so sometimes, a 3rd line is needed. We do it this way:
+   #
+   # If there's no ruins, we can do:
+   #   [Line1]: Copper Silver Gold     (Platinum)   (Potion)
+   #   [Line2]: Estate Duchy  Province (Colony)     Curse
+   # But if there are ruins, we do:
+   #   - if no Potions:
+   #     [Line1]: Copper Silver Gold     (Platinum)   Ruins
+   #     [Line2]: Estate Duchy  Province (Colony)     Curse
+   #   - if there are Potion (and Ruins) but no Platinum:
+   #     [Line1]: Copper Silver Gold     Potion       Ruins
+   #     [Line2]: Estate Duchy  Province (Colony)     Curse
+   #   - else => use a 3rd line to display Ruines:
+   #     [Line1]: Copper Silver Gold     Platinum     Potion
+   #     [Line2]: Estate Duchy  Province (Colony)     Curse
+   #     [Line3]:                                     Ruins
+   #     (normally Colony is there (as per official rule)
+   #      if Platinum is here)
+
+   echo '<h1>BASE CARDS</h1>'
+   local line3=false
+
+   # line 1: Copper Silver Gold ...
+   local card4=''
+   local card5=''
+   if ! $RUINS; then      # ... (Platinum) (Potion)
+      $PLATINUM && card4='Platinum'
+      $POTION   && card5='Potion'
+   elif ! $POTION; then   # ... (Platinum) Ruins
+      $PLATINUM && card4='Platinum'
+      card5='_Ruins'
+   elif ! $PLATINUM; then # ... Potion Ruins
+      card4='Potion'  ; card5='_Ruins'
+   else                   # ... Platinum Potion (3rd line for Ruins)
+      card4='Platinum'; card5='Potion'
+      line3=true
+   fi
+   html_5cards 'Copper' 'Silver' 'Gold' "$card4" "$card5"
+
+   # line #2: Estate Duchy Province (Colony) Curse
+   card4=''
+   $COLONY && card4='Colony'
+   html_5cards 'Estate' 'Duchy' 'Province' "$card4" 'Curse'
+
+   # line #3 (Ruins when other stuff takes all the space)
+   $line3 && html_5cards '' '' '' '' '_Ruins'
+}
+
+#TODO
+RUINS=true; BANE=Bishop; html_base
+
+
+###############################################################################
+# KINGDOM CARDS
+###############################################################################
+
+# display kingdom cards
+html_kingdoms() {
+   echo '<h1>KINGDOM CARDS</h1>'
+
+   # 10 Kingdoms cards as two lines
+   # TODO (for now this is fake!)
+
+   html_5cards "$K1" "$K2" "$K3" "$K4" "$K5"
+   html_5cards "$K6" "$K7" "$K8" "$K9" "$K0"
+
+
+   # Third line (Bane!)
+   if [ -n "$BANE" ]; then
+      res 'Bane'
+      echo   '<div class="w3-cell-row">'
+      echo   '  <div class="w3-cell">'
+      echo   '     <div class="w3-display-container">'
+      printf '       <img class="w3-round-xlarge" style="height:220px" src="%s" alt="Bane Card" />\n' "$IMG"
+      echo   '       <div class="w3-display-middle">'
+#      html_card --no-cell "$BANE"
+      echo   '       </div>'
+      echo   '     </div>'
+      echo   '   </div>'
+
+      echo   '   <div class="w3-cell">'
+      printf '      <img class="w3-round-xlarge" style="height:220px" src="%s" alt="Bane Card" />\n' "$IMG"
+      echo   '   </div>'
+      echo   '   <div class="w3-cell">'
+      printf '      <img class="w3-round-xlarge" style="height:220px" src="%s" alt="Bane Card" />\n' "$IMG"
+      echo   '   </div>'
+
+      echo   '</div>'
+   fi
+}
+
+html_kingdoms
+
+
+################################################################################
+# MIXED PILES & SPLIT PILES
+################################################################################
+
+html_split5() { # 5 "$1" card sitting on top of 5 "$2" cards
+   printf '<h2>%s / %s</h2>' "$1" "$2"
+   echo   '<div class="w3-cell-row w3-center w3-text-blue">'
+   echo   '   <div class="w3-cell">1-5</div>'
+   echo   '   <div class="w3-cell">6-10</div>'
+   echo   '</div>'
+   html_5cards "$1" "$2" '' '' ''
+}
+
+html_mixed_knights() {
+   echo '<h2>Knights</h2>'
+   echo '<div class="w3-cell-row w3-center w3-text-blue">'
+   echo '   <div class="w3-cell">1</div>'
+   echo '   <div class="w3-cell">2</div>'
+   echo '   <div class="w3-cell">3</div>'
+   echo '   <div class="w3-cell">4</div>'
+   echo '   <div class="w3-cell">5</div>'
+   echo '</div>'
+   html_5cards 'Dame Anna'    'Dame Josephine' 'Dame Molly' \
+               'Dame Natalie' 'Dame Sylvia'
+   echo '<div class="w3-cell-row w3-center w3-text-blue">'
+   echo '   <div class="w3-cell">6</div>'
+   echo '   <div class="w3-cell">7</div>'
+   echo '   <div class="w3-cell">8</div>'
+   echo '   <div class="w3-cell">9</div>'
+   echo '   <div class="w3-cell">10</div>'
+   echo '</div>'
+   html_5cards 'Sir Bailey'  'Sir Destry' 'Sir Martin' \
+               'Sir Michael' 'Sir Vander'
+}
+
+html_mixed_ruins() {
+   echo '<h2>Ruins</h2>'
+   echo '<div class="w3-cell-row w3-center w3-text-blue">'
+   echo '   <div class="w3-cell">1</div>'
+   echo '   <div class="w3-cell">2</div>'
+   echo '   <div class="w3-cell">3</div>'
+   echo '   <div class="w3-cell">4</div>'
+   echo '   <div class="w3-cell">5</div>'
+   echo '</div>'
+   html_5cards 'Abandoned_Mine' 'Ruined_Library' \
+      'Ruined_Market' 'Ruined_Village' 'Survivors'
+}
+
+html_split_castles() {
+   echo '<h2>Castles</h2>'
+   echo '<div class="w3-cell-row w3-center w3-text-blue">'
+   echo '   <div class="w3-cell">1</div>'
+   echo '   <div class="w3-cell">2</div>'
+   echo '   <div class="w3-cell">3</div>'
+   echo '   <div class="w3-cell">4</div>'
+   echo '   <div class="w3-cell"></div>'
+   echo '</div>'
+   html_5cards 'Humble Castle' 'Crumbling Castle' \
+               'Small Castle'  'Haunted Castle'  ''
+   echo '<div class="w3-cell-row w3-center w3-text-blue">'
+   echo '   <div class="w3-cell">5</div>'
+   echo '   <div class="w3-cell">6</div>'
+   echo '   <div class="w3-cell">7</div>'
+   echo '   <div class="w3-cell">8</div>'
+   echo '   <div class="w3-cell"></div>'
+   echo '</div>'
+   html_5cards 'Opulent Castle' 'Sprawling Castle' \
+               'Grand Castle'   "King's Castle"   ''
+}
+
+
+SAUNA=true; KNIGHTS=true; #TODO DEBUG
+if $KNIGHTS || $RUINS; then
+   echo '<h1>Mixed-Piles (Shuffled)</h1>'
+   $KNIGHTS    && html_mixed_knights
+   $RUINS      && html_mixed_ruins
+fi
+if $CASTLES || $CATAPULT || $ENCAMPMENT || $GLADIATOR || $PATRICIAN || $SETTLERS || $SAUNA; then
+   echo '<h1>Split-Piles (Predetermined Order)</h1>'
+   $CASTLES    && html_split_castles
+   $CATAPULT   && html_split5 'Catapult'   'Rocks'
+   $ENCAMPMENT && html_split5 'Encampment' 'Plunder'
+   $GLADIATOR  && html_split5 'Gladiator'  'Fortune'
+   $PATRICIAN  && html_split5 'Patrician'  'Emporum'
+   $SETTLERS   && html_split5 'Settlers'   'Bustling Village'
+   $SAUNA      && html_split5 'Sauna'      'Avanto'
+fi
+
+
+################################################################################
+# NON-SUPPLY CARDS (not in supply but can be in the deck)
+# (Prizes, Shelters, Madman, Mercenary, Spoils, Travellers Upgrade,
+#  Heirlooms, Spirit cards, Zombie cards, Bat)
+################################################################################
+
+html_nonsupply_prizes() {
+   echo '<h2>Prizes</h2>'
+   echo '<div class="w3-cell-row w3-center w3-text-blue">'
+   echo '   <div class="w3-cell">1</div>'
+   echo '   <div class="w3-cell">2</div>'
+   echo '   <div class="w3-cell">3</div>'
+   echo '   <div class="w3-cell">4</div>'
+   echo '   <div class="w3-cell">5</div>'
+   echo '</div>'
+   html_5cards 'Bag of Gold' 'Diadem' 'Followers' 'Princess' 'Trusty Steed'
+}
+
+html_nonsupply_shelters() {
+   echo '<h2>Shelters (in your starting hand)</h2>'
+   echo '<div class="w3-cell-row w3-center w3-text-blue">'
+   echo '   <div class="w3-cell">&nbsp;</div>'
+   echo '   <div class="w3-cell">&nbsp;</div>'
+   echo '   <div class="w3-cell">1</div>'
+   echo '   <div class="w3-cell">2</div>'
+   echo '   <div class="w3-cell">3</div>'
+   echo '</div>'
+   html_5cards '_Shelters' '' 'Hovel' 'Necropolis' 'Overgrown Estate'
+}
+
+html_nonsupply_heirlooms() {
+   echo '<h2>Heirlooms</h2>'
+   html_5cards '_Heirlooms' ''        'Haunted Mirror' 'Magic Lamp'  'Goat'
+   html_5cards ''           'Pasture' 'Pouch'          'Cursed Gold' 'Lucky Coin '
+}
+
+html_nonsupply_travellers_page() {
+   echo '<h2>Page Upgrades</h2>'
+   html_5cards 'Page' 'Treasure Hunter' 'Warrior' 'Hero' 'Champion'
+}
+
+html_nonsupply_travellers_peasant() {
+   echo '<h2>Peasant Upgrades</h2>'
+   html_5cards 'Peasant' 'Soldier' 'Fugitive' 'Disciple' 'Teacher'
+}
+
+
+#TODO
+# if $SHELTERS && ...; then
+   echo '<h1>Non-Supply Piles (TODO)</h1>'
+   $SHELTERS             && html_nonsupply_shelters
+   $HEIRLOOMS            && html_nonsupply_heirlooms
+   has_kingdom 'Page'    && html_nonsupply_travellers_page
+   has_kingdom 'Peasant' && html_nonsupply_travellers_peasant
+# fi
+
+################################################################################
+# PLAYERS STARTING HAND
+################################################################################
+
+html_starting_hand() {
+   echo "<h1>Players' Starting Hand</h1>"
+   html_5cards "$START_COPPER1" "$START_COPPER2" "$START_COPPER3" \
+               "$START_COPPER4" "$START_COPPER5"
+   html_5cards "$START_COPPER6" "$START_COPPER7"                  \
+               "$START_ESTATE1" "$START_ESTATE2" "$START_ESTATE3"
+}
+
+
+html_starting_hand
+
+
+################################################################################
+# MATS: TODO!!!
+################################################################################
+
+# display mats we need
+mats() {
+   echo '<h1>Trash Mat<h1>'
+   mat 'Trash' # Trash: global mat that is always used
+
+   echo '<h1>Per-Player Mats<h1>'
+   # Seaside mats: those form a mosaic
+   has_kingdom 'Island'         && html_mat 'Island'
+   has_kingdom 'Native Village' && html_mat 'Native Village'
+   has_kingdom 'Pirate Ship'    && html_mat 'Pirate Ship'
+}
+# show a mat
+# usage: mat title image
+html_mat() {
+   case $1 in
+      *_mat) res "$1"       ;;
+          *) res "${1}_mat" ;;
+   esac
+   printf '<h2>%s</h2>'               "$title"
+   printf '<img src="%s" alt="%s"/>'  "$IMG" "$RES"
+}
+
+
+echo '<h1>Trash Mat<h1>'
+echo '<img style="height:220px" src="game/mats/Dominion/Trash_mat.jpg" alt="Trash Mat" />'
+
+
+################################################################################
+
+html_end
