@@ -1,313 +1,235 @@
 #!/bin/sh
 
-# Usage: $0 [OPTIONS]... [KINGDOM]...
-# (normally, 10 kingdom cards should be given)
-# prints on stdout content of an HTML page with the board
+# Usage: $0 [-N] [CARD,...,...] [CARD]...
+# setup a Dominion Board with the given CARDS and prints its HTML representation
+#
+# OPTIONS:
+#   -N where N is 2..6, controls the number of players (default is 2)
+#
+# ARGUMENTS:
+# First argument (after options) can be a comma separated list of cards
+# Normally, 10 kingdom cards should be given.
+#
+# you can control
+# to always include Potions,  include the card 'Potion'
+# to always include Colonies, include the card 'Colony'
+# to always include Ruins  ,  include the (virtual) card 'Ruins'
 
-# by default Colony+Platinum base cards are included
 
-# BASE CARDS OPTIONS
+################################################################################
+# This script is organized in different "modules". Except for the 'util' module,
+# functions or global variables are prefixed with the name of the module.
+#-----------.-------------------------------------------------------------------
+# MODULE    | DESCRIPTION
+#-----------+-------------------------------------------------------------------
+# util      | misc. small utility functions
+#-----------+-------------------------------------------------------------------
+# index     | function utility to get and display indexes
+#-----------+-------------------------------------------------------------------
+# card      | functions to find or print cards (including "landscape cards")
+#-----------+-------------------------------------------------------------------
+# base      | functions to display the base cards decks
+#-----------+-------------------------------------------------------------------
+# kingdom   | functions to display the kingdom cards decks and the
+#           |                 events/landmarks/projects/ways decks
+#-----------+-------------------------------------------------------------------
+# landscape | functions for landscape decks: events/landmarks/projects/ways
+#           |                            and boons/hexes/states/artifacts
+#-----------+-------------------------------------------------------------------
+# mixed     | functions to display kingdom decks that don't contain all the same
+#           | cards [the card order is either 'mixed' (ie. ramdom order)
+#           |                              or 'split' (predetermined order)]
+#-----------+-------------------------------------------------------------------
+# nonsupply | functions to display non-supply cards/decks [cards that are
+#           |           gained/acquired via other supply cards or events]
+#-----------+-------------------------------------------------------------------
+# starthand | functions to display players starting hands
+#-----------+-------------------------------------------------------------------
+# mat       | functions to display mats (global and players' own)
+#-----------+-------------------------------------------------------------------
+# token     | functions to display tokens in play
+#-----------'-------------------------------------------------------------------
+# board     | function to display the board. uses most others modules.
+#-----------'-------------------------------------------------------------------
 #
-# --colony[=WHEN], where WHEN could be:
-#   auto       => (default behaviour when there's no --colony flag)
-#                 choose one of the Kingdom card at random,
-#                 and if it is from Prosperity, includes Colony and Platinum
-#   yes|always => include Colonies in base cards
-#                 (--colony is equivalent to --colony=yes)
-#   no|never   => does not include Colonies base cards
-#
-# --platinum[=WHEN], WHEN could be:
-#   auto       => (THIS IS THE BEHAVIOUR AS PER DOMINION RULES)
-#                 (default behaviour when there's no --colony flag)
-#                 include if an only if colonies are included
-#   yes|always => include Platinum in base cards
-#                 (--platinum is equivalent to --platinum=yes)
-#   no|never   => does not include Platinum in base cards
-#
-# --potion     => always include potions (as per the rules, normally only
-#                 included when (at least one) kingdom cards requires it)
-#
-# --ruins[=WHEN]
+# Modules may (or man not) have the following functions:
+#----------.--------------------------------------------------------------------
+# init     | no args. Initialize modules variables to a suitable default values,
+#          | This needs to be called before any other functions of the module.
+#----------+--------------------------------------------------------------------
+# check    | no args. Update module variables in reaction to adding CARD_NAME.
+#          | This gets called when adding a card (board_add)
+#----------+--------------------------------------------------------------------
+# finalize | no args. Finalize module variables once all cards have been added.
+#----------+--------------------------------------------------------------------
+# main     | no args. Prints relevant part of the board
+################################################################################
 
 
 
 ################################################################################
-# UTIL FUNCTIONS: to fetch graphics, etc.
+# MODULE "UTIL": small util functions
 ################################################################################
 
-log() { local c; c=$1; shift; printf '%b %s\n' "$c" "$*" >&2; }
-msg() { log '\033[32m[msg]\033[0m' "$*"; }
-die() { log '\033[1;31m[die]\033[0m' "$*"; exit 3; }
+log()   { local c; c=$1; shift; printf '%b %s\n' "$c" "$*" >&2; }
+msg()   { log '\033[32m[ msg ]\033[0m'   "$*"; }
+die()   { log '\033[1;31m[abort]\033[0m' "$*"; exit 3; }
+warn()  { log '\033[1;33m[warn!]\033[0m' "$*"; }
+debug() { log '\033[1;36m[debug]\033[0m' "$*"; }
 
-# find a resource (or exit the program) and setup variables RES, IMG, GAME
-res() {
-   # $1 is the name of the resource
 
-   # IMG: Find image for the resource
-   IMG=$(printf %s "$1" | tr " '" '_.').jpg
-   IMG=$(find 'game' -type f -iname "$IMG")
-   [ -n "$IMG" ] || die "cannot find image for '$1'"
+################################################################################
+# MODULE "INDEX": update alphabetical index
+################################################################################
 
-   # RES is the name of the resource (with proper spaces, apostrophe, capitalization)
-   RES=$(basename "${IMG%.jpg}")
-   RES=$(printf %s "${RES#_}" | tr '_.' " '")
-                         # ^-- specials cards made by ourselves starts with a _ (see: _Ruins)
+index_init() {
+   INDEX_ORD=64  # <- ascii code of current alphabetical index
+}
 
-   # GAME: Determine to which one expansion the resource belongs
-   for GAME in Dominion Intrigue Seaside Alchemy Prosperity Cornucopia \
-               Hinterlands DarkAges Guilds Adventures Empires Nocturne \
-               Renaissance Menagerie Promo
-   do
-      case $IMG in */"$GAME"*) break;; esac
-      [ "$GAME" = 'Promo' ] && GAME='UNOFFICIAL'
+#TODO: document!
+# no args, increment index
+# args: set up
+index_get() {
+   case $# in
+      0) INDEX_ORD=$((INDEX_ORD + 1))
+         INDEX_RAW=$(printf "\\$(printf '%03o' $INDEX_ORD)") ;;
+      1) INDEX_RAW=$1 ;;
+      *) die 'index_get should have 0 or 1 arg' ;;
+   esac
+   INDEX="<span class=\"w3-badge w3-blue\">$INDEX_RAW</span>"
+}
+
+
+################################################################################
+# MODULE "CARDS": find or print cards
+################################################################################
+
+# card_name CARD
+# put the 'simple name' of a resources/card in variable CARD_NAME,
+# 'simple name' means lowercase and removing spaces and apostrophes
+card_name() {
+   CARD_NAME=$(printf %s "$1" | tr '[:upper:]' '[:lower:]' | tr -d " '/_")
+}
+
+# usage: card_find_ NAME
+# try to find card named NAME
+# first will try to find in DominionIndxe images
+# second will try to find
+#
+# 1. call 'card_name' (populates variable CARD_NAME)
+# 2. find the corresponding image and put it in variable CARD_IMG
+# 3. set the name of the game in variable CARD_GAME
+# 4. set type of the card variable CARD_TYPE
+#    if it's really a card (in Dominion parlance), CARD_TYPE will be "card"
+#    otherwise CARD_TYPE will the type of landscape card: (event, landmark,
+#                                              project, way, artifact, ...)
+card_find() {
+   card_name  "$1"
+   card_find_ 'app/img/cards' ||
+   card_find_ 'app/img_index' ||
+   die "cannot find image for '$CARD_NAME'"
+}
+
+# usage: card_find_ DIR
+# (helper for card_find)
+# look for card $CARD_NAME in directory DIR
+card_find_() {
+   [ -d "$1" ] || die "$1: not a directory"
+
+   CARD_IMG=$(ls "$1" | grep "_${CARD_NAME}.jpg$") || return 1
+   while true; do
+      case $(printf '%s\n' "$CARD_IMG" | wc -l) in
+         1) break    ;;
+         2) # cards common to version 1&2 of dominion(baseset)
+            # or intrique may be returned twice. In that case,
+            # return the card of the 2nd version.
+            CARD_IMG=$(printf %s "$CARD_IMG" | grep '^intrigue2\|^baseset2')
+            [ "$(printf '%s\n' "$CARD_IMG" | wc -l)" -eq 1 ] \
+            ||  die "found two images for '$CARD_NAME'" ;;
+         *) die "found several images for '$CARD_NAME'" ;;
+      esac
+   done
+
+   CARD_GAME=$(printf %s "$CARD_IMG" | cut -f1 -d_)
+
+   # card or special type? (artifact, boon, event, landmark, project, way)
+   CARD_TYPE='card'
+   case $CARD_IMG in *_*_*)
+        CARD_TYPE=$(printf %s "$CARD_IMG" | cut -f2 -d_) ;;
+   esac
+
+   CARD_IMG=$1/$CARD_IMG
+}
+
+#-------------- card_row, card_rows, card_row_labels, card_print ---------------
+
+# card_row CARD1 CARD2 CARD3 CARD4 CARD5
+# prints a row of five cards
+# a CARD can be '' to display nothing
+card_row() {
+   [ $# -eq 5 ] || die 'need 5 card arguments'
+   echo '<div class="w3-cell-row">'
+   card_print "$1"
+   card_print "$2"
+   card_print "$3"
+   card_print "$4"
+   card_print "$5"
+   echo '</div>'
+}
+
+
+# display rows of cards (crads given in arguments)
+# each row is filled with 5 cards displayed with card_row function
+card_rows() {
+   local c1
+   local c2
+   local c3
+   local c4
+   local c5
+   while [ $# -ne 0 ]; do
+      c1=''; [ $# -ne 0 ] && { c1=$1; shift; }
+      c2=''; [ $# -ne 0 ] && { c2=$1; shift; }
+      c3=''; [ $# -ne 0 ] && { c3=$1; shift; }
+      c4=''; [ $# -ne 0 ] && { c4=$1; shift; }
+      c5=''; [ $# -ne 0 ] && { c5=$1; shift; }
+      [ -n "$c1$c2$c3$c4$c5" ] && card_row "$c1" "$c2" "$c3" "$c4" "$c5"
    done
 }
 
+# card_row_label LABEL1 LABEL2 LABEL3 LABEL4 LABEL5
+# print a row of "card labels"
+#
+#(use fmt as format string which is constant, it's ok)
+#shellcheck disable=SC2059
+card_row_labels() {
+   [ $# -eq 5 ] || die 'need 5 card arguments'
 
-################################################################################
-# GLOBAL VARIABLES AND RULES THAT MODIFY THOSE VARIABLES
-################################################################################
+   local fmt='   <div class="w3-cell">\n'
+   fmt="$fmt        <div contenteditable=\"true\"\n"
+   fmt="$fmt              style=\"width:220px; display:inline-block\">\n"
+   fmt="$fmt           %s"
+   fmt="$fmt        </div>"
+   fmt="$fmt     </div>\n"
 
-rules_init() {
-   # variables for base cards
-   POTION=auto
-   COLONY=auto
-   PLATINUM=auto
-   # also RUINS (see below)
-
-   # piles whose cards aren't all the same:
-   # 1. piles shuffled at the start of the game
-   RUINS=auto
-   KNIGHTS=false
-   # 2. split piles (order is always fixed)
-   CASTLES=false
-   CATAPULT=false
-   ENCAMPMENT=false
-   GLADIATOR=false
-   PATRICIAN=false
-   SETTLERS=false
-   SAUNA=false
-
-   # starting hands (normaly 7 Coppers + 3 Estates)
-   # - Shelters may replace the Estate
-   # - ...
-   SHELTERS=auto
-   HEIRLOOMS=false
-   START_COPPER1='Copper'
-   START_COPPER2='Copper'
-   START_COPPER3='Copper'
-   START_COPPER4='Copper'
-   START_COPPER5='Copper'
-   START_COPPER6='Copper'
-   START_COPPER7='Copper'
-   START_ESTATE1='Estate'
-   START_ESTATE2='Estate'
-   START_ESTATE3='Estate'
-
-   K1='Index_01'
-   K2='Index_02'
-   K3='Index_03'
-   K4='Index_04'
-   K5='Index_05'
-   K6='Index_06'
-   K7='Index_07'
-   K8='Index_08'
-   K9='Index_09'
-   K0='Index_10'
+   echo   '<div class="w3-cell-row">'
+   echo   '   <div class="w3-cell-row w3-center w3-text-grey">'
+   printf "$fmt"  "$1"
+   printf "$fmt"  "$2"
+   printf "$fmt"  "$3"
+   printf "$fmt"  "$4"
+   printf "$fmt"  "$5"
+   echo   '   </div>'
+   echo   '</div>'
 }
 
-# replace a copper in the starting hand with the given heirloom $1
-add_heirloom() {
-   msg "replacing a Copper with an Heirloom '$1' in the starting hand"
-   HEIRLOOMS=true
-   [ "$START_COPPER1" = 'Copper' ] && { START_COPPER1=$1; return; }
-   [ "$START_COPPER2" = 'Copper' ] && { START_COPPER2=$1; return; }
-   [ "$START_COPPER3" = 'Copper' ] && { START_COPPER3=$1; return; }
-   [ "$START_COPPER4" = 'Copper' ] && { START_COPPER4=$1; return; }
-   [ "$START_COPPER5" = 'Copper' ] && { START_COPPER5=$1; return; }
-   [ "$START_COPPER6" = 'Copper' ] && { START_COPPER6=$1; return; }
-   [ "$START_COPPER7" = 'Copper' ] && { START_COPPER7=$1; return; }
-   die 'cannot set heirloom as starting hand has no copper'
-
-}
-
-# usage: has_kingdom CARD
-# return 0 if has the kingdom cards contain CARD, 1 otherwise
-has_kingdom() {
-   # TODO: more than 10 Kingdoms (BlackMarket, YoungWish's Bane, etc.)
-   local k
-   k=$(printf %s "$1" | tr '_.' " '")
-   [ "$K1" = "$k" ] || [ "$K2" = "$k" ] || [ "$K3" = "$k" ] ||
-   [ "$K4" = "$k" ] || [ "$K5" = "$k" ] || [ "$K6" = "$k" ] ||
-   [ "$K7" = "$k" ] || [ "$K8" = "$k" ] || [ "$K9" = "$k" ] ||
-   [ "$K0" = "$k" ]
-}
-
-# usage: add_kingdom CARD
-# function that modify the global variable to put CARD in the game
-add_kingdom() {
-   [ $# -eq 1 ] || die 'add_kingdom function takes one arg only'
-   res "$1"
-   msg "adding '$RES' to the kingdom cards"
-
-   case $RES in
-      Transmute|Vineyard|Apothecary|'Scrying Pool'|University|Alchemist|Familiar|"Philosopher's Stone"|Golem|Possession)
-         [ $POTION = true ] || msg "adding 'Potion' to base cards"
-         POTION=true ;;
-      'Death Cart'|Marauder|Cultist)
-         [ $RUINS = true ]  || msg "adding 'Ruins' to base cards"
-         RUINS=true ;;
-      Knights) KNIGHTS=true ;;
-
-      # heirlooms (Nocturne)
-           Cemetery) add_heirloom 'Haunted Mirror' ;;
-      'Secret Cave') add_heirloom 'Magic Lamp'     ;;
-              Pixie) add_heirloom 'Goat'           ;;
-            Sheperd) add_heirloom 'Pasture'        ;;
-            Tracker) add_heirloom 'Pouch'          ;;
-              Pooka) add_heirloom 'Cursed Gold'    ;;
-               Fool) add_heirloom 'Lucky Coin '    ;;
-   esac
-}
-
-# function to call when all cards have been put into the game,
-# to make sure global variables are boleean and consistent
-rules_finalize() {
-   case $POTION in
-      true) ;;
-      *) POTION=false ;;
-   esac
-   case $COLONY in
-      true|false) ;;
-      *) COLONY=false ;;
-   esac
-   case $PLATINUM in
-      true|false) ;;
-      *) PLATINUM=$COLONY ;;
-   esac
-   case $RUINS in
-      true|false) ;;
-      *) RUINS=false ;;
-   esac
-   case $SHELTERS in
-      true) START_ESTATE1='Hovel'
-            START_ESTATE2='Necropolis'
-            START_ESTATE3='Overgrown Estate' ;;
-         *) SHELTERS=false ;;
-   esac
-}
-#-------------------------------------------------------------------------------
-
-# kingdoms
-[ "$COLONY" = auto ] \
-&& case $1 in
-      Loan|Trade_Route|Watchtower|Bishop|Monument|Quarry|Talisman|Workers_Village|City|Contraband|Counting_House|Mint|Mountebank|Rabble|Royal_Seal|Vault|Venture|Goons|Grand_Market|Hoard|Bank|Expand|Forge|Kings_Court|Peddler)
-         COLONY=true  ;;
-      *) COLONY=false ;;
-   esac
-# as per official platinum is there onll when there are colonies
-# (for the moment, this is not tweakable)
-PLATINUM=$COLONY
-
-
-# TODO ????????
-kingdom() {
-#   res "$1"
-   case $RES in
-      # Potion (Alchemy)
-      Transmute|Vineyard|Apothecary|'Scrying Pool'|University|Alchemist|Familiar|"Philosopher's Stone"|Golem|Possession)
-         POTION=true ;;
-
-      # Ruins ()
-      'Death Cart'|Marauder|Cultist)
-         RUINS=true;
-   esac
-#  html_card "$RES" "$IMG"
-}
-
-
-# PARSE SCRIPT ARGUMENTS AND SET RULES ACCORDING TO GIVEN FLAGS
-
-rules_init
-
-while true; do
-   case $1 in
-      --potion|--potion=yes|--potion=always) POTION=true  ;;
-                                --potion=no) POTION=auto  ;;
-      --colony|--colony=yes|--colony=always) COLONY=true  ;;
-                 --colony=no|--colony=never) COLONY=false ;;
-                              --colony=auto) COLONY=auto  ;;
-       -*) die "unrecognized option: $1" ;;
-        *) break ;;
-   esac
-   shift
-done
-
-[ $# -gt  10 ] && die "too many arguments ($#)"
-[ -n "$1"    ] && { add_kingdom "$1"   ; K1=$1    ;}
-[ -n "$2"    ] && { add_kingdom "$2"   ; K2=$2    ;}
-[ -n "$3"    ] && { add_kingdom "$3"   ; K3=$3    ;}
-[ -n "$4"    ] && { add_kingdom "$4"   ; K4=$4    ;}
-[ -n "$5"    ] && { add_kingdom "$5"   ; K5=$5    ;}
-[ -n "$6"    ] && { add_kingdom "$6"   ; K6=$6    ;}
-[ -n "$7"    ] && { add_kingdom "$7"   ; K7=$7    ;}
-[ -n "$8"    ] && { add_kingdom "$8"   ; K8=$8    ;}
-[ -n "$9"    ] && { add_kingdom "$9"   ; K9=$9    ;}
-[ -n "${10}" ] && { add_kingdom "${10}"; K0=${10} ;}
-
-
-SHELTERS=true; #TODO: DEBUG/DELETE
-
-rules_finalize
-
-
-################################################################################
-# OUTPUT FUNCTIONS FOR HTML COMPONENTS       (begin, end, etc.)
-# AND FOR GAME ELEMENTS (cards, row of 5 cards, landscape, ...)
-################################################################################
-
-html_begin() {
-cat << EOF
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>Board - Dominion Index</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="stylesheet" href="w3.css">
-  <style>
-    .card {
-       width:100%
-    }
-  </style>
-</head>
-<body>
-  <div class="w3-auto">
-EOF
-}
-
-html_end() {
-   echo '</div></body></html>'
-}
-
-html_5cards() {
-   # usage: html_5cards card1 card2 card3 card4 card5
-   # display a row of card
-   [ $# -eq 5 ] || die 'need 5 arguments'
-   echo '<div class="w3-cell-row">'
-   html_card "$1"
-   html_card "$2"
-   html_card "$3"
-   html_card "$4"
-   html_card "$5"
-   echo '</div>'
-}
-html_card() {
-   # usage: html_card [--no-cell] title image
-   #    or  html_card [--no-cell] resource
-   #
-   # show a card given by its title & name or found by a resource string
-   # card is shown in a 'w3-cell' unless --no-cell is specified)
+# usage: card_print [--no-cell] title image
+#    or  card_print [--no-cell] resource
+#
+# show a card given by its title & name or found by a resource string
+# card is shown in a 'w3-cell' unless --no-cell is specified)
+#
+# >> mostly use card_row() to display cards instead of this
+card_print() {
    local title
    local img
 
@@ -316,44 +238,195 @@ html_card() {
 
    case $# in
      1) if [ -n "$1" ]; then
-           res "$1"; title=$RES; img=$IMG
+           card_find "$1"; title=$CARD_NAME; img=$CARD_IMG
         fi ;;
      2) [ -n "$1" ] || die 'card is null but you gave two arguments'
         title=$1; img=$2 ;;
      *) die "card function: wrong number of args ($#)" ;;
    esac
 
-   $cell && echo    '<div class="w3-cell">'
-   echo             '   <div style="padding:3px">'
-   if [ -z "$1" ]; then
-      echo          '      <img style="width:220px" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=">'
-   else
-      printf        '      <a href="%s">\n' "$img"
-      echo          '         <img class="w3-round-xlarge w3-hover-sepia"'
-      echo          '              style="width:220px"'
-      printf        '              src="%s" alt="%s" />\n' "$img" "$title"
-      echo          '      </a>'
-   fi
-   echo             '   </div>'
-   $cell && echo    '</div>'
+   $cell && echo         '<div class="w3-cell">'
+   echo                  '   <div style="padding:3px">'
+   [ -n "$1" ] && printf '      <a href="%s">\n' "$img"
+   echo                  '         <img style="width:220px"'
+   [ -n "$1" ] && echo   '              class="w3-border-black w3-round-xlarge w3-hover-sepia"'
+   [ -n "$1" ] && printf '              src="%s" alt="%s" />\n' "$img" "$title"
+   [ -z "$1" ] && echo   '              src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=">'
+   [ -n "$1" ] && echo   '      </a>'
+   echo                  '   </div>'
+   $cell && echo         '</div>'
 
+}
+
+#------------- card_lrow, card_lrows, card_lrow_labels, card_lprint ------------
+
+# card_lrow LCARD1 LCARD2 LCARD3
+# prints a row of three landscape cards
+# a CARD can be '' to display nothing
+card_lrow() {
+   [ $# -eq 3 ] || die 'need 3 landscape card arguments'
+   echo '<div class="w3-cell-row">'
+   card_lprint "$1"
+   card_lprint "$2"
+   card_lprint "$3"
+   echo '</div>'
+}
+
+# display rows of landscape cards (landscape cards given in arguments)
+# each row is filled with 3 landscape cards displayed with card_lrow function
+card_lrows() {
+   local l1
+   local l2
+   local l3
+   while [ $# -ne 0 ]; do
+      l1=''; [ $# -ne 0 ] && { l1=$1; shift; }
+      l2=''; [ $# -ne 0 ] && { l2=$1; shift; }
+      l3=''; [ $# -ne 0 ] && { l3=$1; shift; }
+      [ -n "$l1$l2$l3" ] && card_lrow "$l1" "$l2" "$l3"
+   done
+}
+
+# card_lrow_labels LABEL1 LABEL2 LABEL3
+# print a row of "lcard labels"
+#
+#(use fmt as format string which is constant, it's ok)
+#shellcheck disable=SC2059
+card_lrow_labels() {
+   [ $# -eq 3 ] || die 'need 3 label arguments'
+   local fmt='   <div class="w3-cell">\n'
+   fmt="$fmt        <div contenteditable=\"true\"\n"
+   fmt="$fmt              style=\"width:352px; display:inline-block\">\n"
+   fmt="$fmt           %s"
+   fmt="$fmt        </div>"
+   fmt="$fmt     </div>\n"
+
+   echo   '<div class="w3-cell-row">'
+   echo   '   <div class="w3-cell-row w3-center w3-text-grey">'
+   printf "$fmt"  "$1"
+   printf "$fmt"  "$2"
+   printf "$fmt"  "$3"
+   echo   '   </div>'
+   echo   '</div>'
+}
+
+# like card_print for landscape cards
+card_lprint() {
+   [ -n "$1" ] && card_find "$1"
+   echo                  '<div class="w3-cell">'
+   echo                  '   <div style="padding:3px">'
+   [ -n "$1" ] && printf '      <a href="%s">\n' "$CARD_IMG"
+   echo                  '         <img style="width:352px; max-height:220px"'
+   [ -n "$1" ] && echo   '              class="w3-border-black w3-round-xlarge w3-hover-sepia"'
+   [ -n "$1" ] && printf '              src="%s" alt="%s" />\n' "$CARD_IMG" "$CARD_NAME"
+   [ -z "$1" ] && echo   '              src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=">'
+   [ -n "$1" ] && echo   '      </a>'
+   echo                  '   </div>'
+   echo                  '</div>'
 }
 
 
 
 ################################################################################
+# MODULE "BASE": functions related to BASE cards
+################################################################################
+#
+# [ ] All       : Copper   : 60 (that includes both base & players' start hands)
+#                 Silver   : 40
+#                 Gold     : 30
+#                 Estate   : 2 player: 8, 3-4 players: 12
+#                 Duchy    : 2 player: 8, 3-4 players: 12
+#                 Province : 2 player: 8, 3-4 players: 12
+#                 Curse    : in the supply, there should be 10 x (#players - 1)
+# [ ] Alchemy   : any card with a potion in its cost => Potion (16)
+#                 '-> (transmute, vineyard, apothecary, scrying pool,
+#                      university, alchemist, familiar, philosopher's stone,
+#                      golem, possession)
+# [ ] Prosperity: Platinum (8/12) & Colonies (2 player: 8, 3-4 players: 12)
+# [ ] Dark Ages : any card with type looters => Ruins (mixed pile)
+#                 '-> (cultist, marauder, death cart)
+################################################################################
 
+base_init() {
+   BASE_POTION=auto
+   BASE_COLONY=auto
+   BASE_PLATINUM=auto
+   BASE_RUINS=auto
 
+   # each players start with 7 coppers in hand (some coppers might
+   # get added back here, if heirlooms are used in starting hands)
+   BASE_COPPER_N=60
+   [ "$BOARD_PLAYERS" -ge 5 ] && BASE_COPPER_N=120
+   BASE_COPPER_N=$((BASE_COPPER_N - 7 * BOARD_PLAYERS))
+}
 
-html_begin
+# base_check will modify the CARD_TYPE to 'base'
+# if it's a base card
+base_check() {
+   case $CARD_NAME in
 
-#####################################################################
-# BASE CARDS
-# (Basic Treasures and Victories, Curses, Ruins)
-#####################################################################
+   # All: the "basic" bases
+   copper|coppers|silver|silvers|gold|golds|curse|curses|estate|estates|duchy|duchies|province|provinces)
+      CARD_TYPE='base' ;;
 
-# display base cards
-html_base() {
+   # Prosperity colony/platinum + Alchemy potions
+      colony|colonies) [ $BASE_COLONY = true ] || msg "adding Colony to base cards"
+                       BASE_COLONY=true
+                       CARD_TYPE='base' ;;
+   platinum|platinums) [ $BASE_PLATINUM = true ] || msg "adding Platinum to base cards"
+                       BASE_PLATINUM=true
+                       CARD_TYPE='base' ;;
+    coloniesplatinums) [ $BASE_PLATINUM = true ] || msg "adding Platinums/Colonies to base cards"
+                       BASE_PLATINUM=true; BASE_COLONY=true
+                       CARD_TYPE='base' ;;
+    # ^-- this is a "card" name in Dominion Randomizer app
+
+   # Alchemy: add Potions when a card has potion in its cost or it potion is explicitely passed
+      potion|potions|transmute|vineyard|apothecary|scryingpool|university|alchemist|familiar|philosophersstone|golem|possession)
+         [ $BASE_POTION = true ] || msg "adding 'Potion' to base cards"
+         BASE_POTION=true
+         case $CARD_NAME in
+            potion*) CARD_TYPE='base' ;;
+         esac ;;
+
+   # Dark Ages: add Ruins when there's a "looter" (deathcart|marauder|cultist)
+   # or a ruins is given (or the generic 'Ruin(s)')
+      deathcart|marauder|cultist|ruin|ruins|abandonedmine|ruinedlibrary|ruinedmarket|ruinedvillage|survivors)
+         [ $BASE_RUINS = true ]  || msg "adding 'Ruins' to base cards"
+         BASE_RUINS=true
+         case $CARD_NAME in
+            deathcart|marauder|cultist) ;;
+            *) CARD_TYPE='base' ;;
+         esac ;;
+
+      *) return ;;
+   esac
+}
+
+# no args. to call when all cards have been put into the game,
+# to make sure base global variables are boleean and consistent
+base_finalize() {
+
+## TODO: Colonies ?????
+##
+## [ "$BASE_COLONY" = auto ] \
+## && case $1 in
+##      Loan|Trade_Route|Watchtower|Bishop|Monument|Quarry|Talisman|Workers_Village|City|Contraband|Counting_House|Mint|Mountebank|Rabble|Royal_Seal|Vault|Venture|Goons|Grand_Market|Hoard|Bank|Expand|Forge|Kings_Court|Peddler)
+##         BASE_COLONY=true  ;;
+##      *) BASE_COLONY=false ;;
+##   esac
+
+   [ "$BASE_POTION" = true ] || BASE_POTION=false
+   [ "$BASE_COLONY" = true ] || BASE_COLONY=false
+   [ "$BASE_RUINS"  = true ] || BASE_RUINS=false
+   case $BASE_PLATINUM in
+      true|false) ;;
+               *) BASE_PLATINUM=$BASE_COLONY
+                  $BASE_PLATINUM && msg "adding Platinum to base cards" ;;
+   esac
+}
+
+# no args. display base cards
+base_cards() {
    # If possible we'd like to keep 2 lines of 5 cards
    #       [Line1]:  Copper Silver Gold     [slot4]  [slot5]
    #       [Line2]:  Estate Duchy  Province [slot4]  Curse
@@ -379,271 +452,1070 @@ html_base() {
 
    echo '<h1>BASE CARDS</h1>'
    local line3=false
+   local n=12 # number of victory cards (expect provinces)
+   [ "$BOARD_PLAYERS" -eq 2 ] && n=8
+   local np # number of provinces
+   case $BOARD_PLAYERS in
+      6) np=18 ;;
+      5) np=15 ;;
+      *) np=$n ;;
+   esac
 
    # line 1: Copper Silver Gold ...
-   local card4=''
-   local card5=''
-   if ! $RUINS; then      # ... (Platinum) (Potion)
-      $PLATINUM && card4='Platinum'
-      $POTION   && card5='Potion'
-   elif ! $POTION; then   # ... (Platinum) Ruins
-      $PLATINUM && card4='Platinum'
-      card5='_Ruins'
-   elif ! $PLATINUM; then # ... Potion Ruins
-      card4='Potion'  ; card5='_Ruins'
-   else                   # ... Platinum Potion (3rd line for Ruins)
-      card4='Platinum'; card5='Potion'
+   local label_potion=''
+   local label_ruins="#$(( 10*(BOARD_PLAYERS - 1) )) (see below)"
+   local card4=''; local label4=''
+   local card5=''; local label5=''
+   if $BASE_PLATINUM; then
+      card4='Platinum'
+      index_get; label4="${INDEX}.1-12"
+   fi
+   if $BASE_POTION; then
+      index_get; label_potion="${INDEX}.1-12"
+      index_get; label_potion="${label_potion}, ${INDEX}.1-4"
+   fi
+
+   if ! $BASE_RUINS; then      # ... (Platinum) (Potion)
+      $BASE_POTION && card5='Potion' && label5=$label_potion
+   elif ! $BASE_POTION; then   # ... (Platinum) Ruins
+      card5='ruins';  label5=$label_ruins
+   elif ! $BASE_PLATINUM; then # ... Potion Ruins
+      card4='Potion'; label4=$label_potion
+      card5='ruins' ; label5=$label_ruins
+   else                        # ... Platinum Potion (3rd line for Ruins)
+      card5='Potion'; label5=$label_potion
       line3=true
    fi
-   html_5cards 'Copper' 'Silver' 'Gold' "$card4" "$card5"
+
+   if [ "$BOARD_PLAYERS" -le 4 ]
+      then card_row_labels "#${BASE_COPPER_N}" '#40' '#30' "$label4" "$label5"
+      else card_row_labels "#${BASE_COPPER_N}" '#80' '#60' "$label4" "$label5"
+   fi
+   card_row 'Copper' 'Silver' 'Gold' "$card4" "$card5"
+
 
    # line #2: Estate Duchy Province (Colony) Curse
-   card4=''
-   $COLONY && card4='Colony'
-   html_5cards 'Estate' 'Duchy' 'Province' "$card4" 'Curse'
+   card4=''; label4=''
+   if $BASE_COLONY; then
+      card4='Colony'
+      index_get; label4="${INDEX}.1-${n}"
+   fi
+   card_row         'Estate' 'Duchy'  'Province' "$card4"  'Curse'
+   card_row_labels  "#${n}"  "#${n}"  "#${np}"   "$label4" "#$(( 10*(BOARD_PLAYERS - 1) ))"
 
    # line #3 (Ruins when other stuff takes all the space)
-   $line3 && html_5cards '' '' '' '' '_Ruins'
-}
-
-#TODO
-RUINS=true; BANE=Bishop; html_base
-
-
-###############################################################################
-# KINGDOM CARDS
-###############################################################################
-
-# display kingdom cards
-html_kingdoms() {
-   echo '<h1>KINGDOM CARDS</h1>'
-
-   # 10 Kingdoms cards as two lines
-   # TODO (for now this is fake!)
-
-   html_5cards "$K1" "$K2" "$K3" "$K4" "$K5"
-   html_5cards "$K6" "$K7" "$K8" "$K9" "$K0"
-
-
-   # Third line (Bane!)
-   if [ -n "$BANE" ]; then
-      res 'Bane'
-      echo   '<div class="w3-cell-row">'
-      echo   '  <div class="w3-cell">'
-      echo   '     <div class="w3-display-container">'
-      printf '       <img class="w3-round-xlarge" style="height:220px" src="%s" alt="Bane Card" />\n' "$IMG"
-      echo   '       <div class="w3-display-middle">'
-#      html_card --no-cell "$BANE"
-      echo   '       </div>'
-      echo   '     </div>'
-      echo   '   </div>'
-
-      echo   '   <div class="w3-cell">'
-      printf '      <img class="w3-round-xlarge" style="height:220px" src="%s" alt="Bane Card" />\n' "$IMG"
-      echo   '   </div>'
-      echo   '   <div class="w3-cell">'
-      printf '      <img class="w3-round-xlarge" style="height:220px" src="%s" alt="Bane Card" />\n' "$IMG"
-      echo   '   </div>'
-
-      echo   '</div>'
+   if $line3; then
+      card_row         'ruins'        '' '' '' ''
+      card_row_labels  "$label_ruins" '' '' '' ''
    fi
 }
 
-html_kingdoms
+base_ruins_shuffle() {
+   msg 'shuffling to select ruins indexes'
+
+   # 50 ruins (A:Mines, B:Libraries, C:Markets, D:Villages, E:Survivors)
+   # shuffle them            : shuf
+   # choose the right numbers: head -n $((10 * (BOARD_PLAYERS - 1)))
+   # make the count          : sort | uniq -c
+   {  printf 'A\nA\nA\nA\nA\nA\nA\nA\nA\nA\n'
+      printf 'B\nB\nB\nB\nB\nB\nB\nB\nB\nB\n'
+      printf 'C\nC\nC\nC\nC\nC\nC\nC\nC\nC\n'
+      printf 'D\nD\nD\nD\nD\nD\nD\nD\nD\nD\n'
+      printf 'E\nE\nE\nE\nE\nE\nE\nE\nE\nE\n'
+   }| shuf                                  |
+      head -n $((10 * (BOARD_PLAYERS - 1))) |
+      sort | uniq -c
+}
+
+# compute indexes for ruins
+# need to be called from base_ruins (use its local variables)
+base_ruins_index() {
+   local count
+   count=$(printf %s "$ruins" | awk "/$1/ {print \$1}")
+   if [ -z "$count" ]; then
+      label='-'
+   else
+      [ $((n + count)) -gt 12 ] && n=1 && index_get
+      label="${INDEX}.${n}"
+      n=$((n + count - 1))
+      [ "$count" = 1 ] || label="${label}-$n"
+      n=$((n + 1))
+   fi
+}
+
+# no args. display the Ruins pile!
+base_ruins() {
+   echo '<h2>Ruins Pile (shuffled)</h2>' #TODO
+
+   local ruins ; ruins=$(base_ruins_shuffle)
+   debug "ruins shuffling:$(printf '\n\033[0m')${ruins}"
+   local n=1   ; index_get
+
+   local label
+   local a; base_ruins_index 'A'; a=$label;
+   local b; base_ruins_index 'B'; b=$label;
+   local c; base_ruins_index 'C'; c=$label;
+   local d; base_ruins_index 'D'; d=$label;
+   local e; base_ruins_index 'E'; e=$label;
+
+   card_row_labels "$a" "$b" "$c" "$d" "$e"
+   card_row 'Abandoned Mine' 'Ruined Library' 'Ruined Market' 'Ruined Village' 'Survivors'
+
+}
+
+base_main() {
+   base_finalize
+   base_cards
+   $BASE_RUINS && base_ruins
+}
+
+
+
+###############################################################################
+# MODULE "KINGDOMS": kingdom cards +  events/landmarks/projects/ways decks
+###############################################################################
+# [ ] All       : 10 kingdom piles
+# [ ] Cornucopia: Young Witch => Bane card as an 11th kingdom pile
+# [ ] Adventures/Empires/Renaissance/Menagerie/Promo:
+#                 (max) TWO cards (A and B) for events/landmarks/projects/ways
+###############################################################################
+
+kingdom_init() {
+   KINGDOM_1=''; KINGDOM_2='' ; KINGDOM_3=''; KINGDOM_4=''; KINGDOM_5=''
+   KINGDOM_6=''; KINGDOM_7='' ; KINGDOM_8=''; KINGDOM_9=''; KINGDOM_10=''
+   KINGDOM_11=''
+}
+
+kingdom_check() {
+   case $CARD_NAME in
+      # Cornucopia's "Young Witch"
+      youngwitch) KINGDOM_11='11'
+                  msg 'Young Witch => setting up 11th Kingdom (Bane)' ;;
+   esac
+}
+
+# add current card to kingdom pile
+kingdom_add() {
+   msg "adding '$CARD_NAME' to kingdoms"
+   if   [ -z "$KINGDOM_1"  ]; then KINGDOM_1=$CARD_NAME
+   elif [ -z "$KINGDOM_2"  ]; then KINGDOM_2=$CARD_NAME
+   elif [ -z "$KINGDOM_3"  ]; then KINGDOM_3=$CARD_NAME
+   elif [ -z "$KINGDOM_4"  ]; then KINGDOM_4=$CARD_NAME
+   elif [ -z "$KINGDOM_5"  ]; then KINGDOM_5=$CARD_NAME
+   elif [ -z "$KINGDOM_6"  ]; then KINGDOM_6=$CARD_NAME
+   elif [ -z "$KINGDOM_7"  ]; then KINGDOM_7=$CARD_NAME
+   elif [ -z "$KINGDOM_8"  ]; then KINGDOM_8=$CARD_NAME
+   elif [ -z "$KINGDOM_9"  ]; then KINGDOM_9=$CARD_NAME
+   elif [ -z "$KINGDOM_10" ]; then KINGDOM_10=$CARD_NAME
+   elif [ "$KINGDOM_11" = '11' ]; then
+        if [ "$CARD_NAME" = youngwitch ]
+           then warn 'Young Witch as 11th kingdom'
+           else msg  "setting up $CARD_NAME as BANE pile"
+        fi
+        KINGDOM_11=$CARD_NAME
+   elif [ -z "$KINGDOM_11" ]; then
+        warn "no Young Witch, but asked to set up '$CARD_NAME' as 11th kingdom"
+        KINGDOM_11=$CARD_NAME
+   else die 'all kingdoms are assigned already'
+   fi
+}
+
+kingdom_finalize() {
+   [ -n "$KINGDOM_1"  ] || KINGDOM_1='01'
+   [ -n "$KINGDOM_2"  ] || KINGDOM_2='02'
+   [ -n "$KINGDOM_3"  ] || KINGDOM_3='03'
+   [ -n "$KINGDOM_4"  ] || KINGDOM_4='04'
+   [ -n "$KINGDOM_5"  ] || KINGDOM_5='05'
+   [ -n "$KINGDOM_6"  ] || KINGDOM_6='06'
+   [ -n "$KINGDOM_7"  ] || KINGDOM_7='07'
+   [ -n "$KINGDOM_8"  ] || KINGDOM_8='08'
+   [ -n "$KINGDOM_9"  ] || KINGDOM_9='09'
+   [ -n "$KINGDOM_10" ] || KINGDOM_10='10'
+}
+
+# return 0 if card $1 is *not* in the kingdom
+# return the numerical index otherwise
+# (it's a bit unusual to use return values to return
+#  values and not errors, but it works well in this case)
+kingdom_hasnt() {
+   card_name "$1"
+   [ "$KINGDOM_1"  = "$CARD_NAME" ] && return 1
+   [ "$KINGDOM_2"  = "$CARD_NAME" ] && return 2
+   [ "$KINGDOM_3"  = "$CARD_NAME" ] && return 3
+   [ "$KINGDOM_4"  = "$CARD_NAME" ] && return 4
+   [ "$KINGDOM_5"  = "$CARD_NAME" ] && return 5
+   [ "$KINGDOM_6"  = "$CARD_NAME" ] && return 6
+   [ "$KINGDOM_7"  = "$CARD_NAME" ] && return 7
+   [ "$KINGDOM_8"  = "$CARD_NAME" ] && return 8
+   [ "$KINGDOM_9"  = "$CARD_NAME" ] && return 9
+   [ "$KINGDOM_10" = "$CARD_NAME" ] && return 10
+   [ "$KINGDOM_11" = "$CARD_NAME" ] && return 11
+   return 0
+}
+
+# TODO: remove and use only kingdom_hasnt ?
+# usage: kingdom_has CARD
+# return 0 if CARD is in the kingdom, non-zero otherwise
+kingdom_has() { ! kingdom_hasnt "$1" ;}
+
+
+# usage: kingdom_label N  [with N in 0..11]
+# create index for kingdom N in variable label
+# (variable label is declared by kindom_main() calling this)
+kingdom_label() {
+   local card # the kingdom card
+   local n    # number of cards in the pile
+
+   case $1 in
+      1) card=$KINGDOM_1  ;;
+      2) card=$KINGDOM_2  ;;
+      3) card=$KINGDOM_3  ;;
+      4) card=$KINGDOM_4  ;;
+      5) card=$KINGDOM_5  ;;
+      6) card=$KINGDOM_6  ;;
+      7) card=$KINGDOM_7  ;;
+      8) card=$KINGDOM_8  ;;
+      9) card=$KINGDOM_9  ;;
+     10) card=$KINGDOM_10 ;;
+     11) card=$KINGDOM_11 ;;
+   esac
+
+   case $1 in
+     11) index_get      ;; #TODO (!!!)
+      *) index_get "$1" ;;
+   esac
+
+   case $card in
+
+      # victory cards in the kingdom pile => 8/12 cards
+      castles|vineyard|greathall|tunnel|gardens|mill|island|silkroad|feodum|cemetery|duke|distantlands|harem|nobles|fairgrounds|farmland)
+         n=12; [ "$BOARD_PLAYERS" -eq 2 ] && n=8;;
+
+      # other kingdom which aren't 10 cards pile (and at most 12 cards)
+      port) n=12 ;;
+
+      # kingdoms with >12 cards (special treatment using alphabetical indexes)
+      rats) local rat1; index_get; rat1=$INDEX;
+            local rat2; index_get; rat2=$INDEX;
+            label="${rat1}.1-10, ${rat2}.1-10"
+            return ;;
+
+      # the usual case => 10 cards
+         *) n=10 ;;
+   esac
+
+   label="${INDEX}.1-$n"
+}
+
+
+# no args. display kingdoms decks and A/B cards
+kingdom_main() {
+   kingdom_finalize
+   echo '<h1>KINGDOM CARDS</h1>'
+
+   local label
+   local l1; kingdom_label 1; l1=$label
+   local l2; kingdom_label 2; l2=$label
+   local l3; kingdom_label 3; l3=$label
+   local l4; kingdom_label 4; l4=$label
+   local l5; kingdom_label 5; l5=$label
+   card_row_labels "$l1" "$l2" "$l3" "$l4" "$l5"
+   card_row "$KINGDOM_1" "$KINGDOM_2" "$KINGDOM_3" "$KINGDOM_4" "$KINGDOM_5"
+
+   kingdom_label  6; l1=$label
+   kingdom_label  7; l2=$label
+   kingdom_label  8; l3=$label
+   kingdom_label  9; l4=$label
+   kingdom_label 10; l5=$label
+   card_row "$KINGDOM_6" "$KINGDOM_7" "$KINGDOM_8" "$KINGDOM_9" "$KINGDOM_10"
+   card_row_labels "$l1" "$l2" "$l3" "$l4" "$l5"
+
+   if [ -n "$KINGDOM_11" ]; then
+      kingdom_label 11
+      card_row        "$KINGDOM_11" '' '' '' ''
+      card_row_labels "$label"      '' '' '' ''
+   fi
+}
+
 
 
 ################################################################################
-# MIXED PILES & SPLIT PILES
+# MODULE "LANDSCAPE" : Landscape "cards"
+# events/landmarks/projects/ways  boons/hexes/states/artifacts
+
+# events/landmarks/projects/ways
+# [x] in Adventures, Empires, Renaissance, Menagerie, Promo
+#     (max 2 unique of those are in play)
+#
+# others:
+# [ ] Hexes     (Nocturne)  : simulate those with javascript!
+# [ ] Boons     (Nocturne)  : simulate those with javascript!
+# [x] States    (Nocturne   : 3 unique cards [2 of them double-sided])
+# [x] Artifacts (Renaissance: 5 unique cards in Renaissance)
+#
 ################################################################################
 
-html_split5() { # 5 "$1" card sitting on top of 5 "$2" cards
-   printf '<h2>%s / %s</h2>' "$1" "$2"
-   echo   '<div class="w3-cell-row w3-center w3-text-blue">'
-   echo   '   <div class="w3-cell">1-5</div>'
-   echo   '   <div class="w3-cell">6-10</div>'
-   echo   '</div>'
-   html_5cards "$1" "$2" '' '' ''
+landscape_init() {
+   LANDSCAPE_A=''
+   LANDSCAPE_B=''
+
+   LANDSCAPE_BOONS=false
+   LANDSCAPE_HEXES=false
+
+   LANDSCAPE_H1=false
 }
 
-html_mixed_knights() {
-   echo '<h2>Knights</h2>'
-   echo '<div class="w3-cell-row w3-center w3-text-blue">'
-   echo '   <div class="w3-cell">1</div>'
-   echo '   <div class="w3-cell">2</div>'
-   echo '   <div class="w3-cell">3</div>'
-   echo '   <div class="w3-cell">4</div>'
-   echo '   <div class="w3-cell">5</div>'
-   echo '</div>'
-   html_5cards 'Dame Anna'    'Dame Josephine' 'Dame Molly' \
-               'Dame Natalie' 'Dame Sylvia'
-   echo '<div class="w3-cell-row w3-center w3-text-blue">'
-   echo '   <div class="w3-cell">6</div>'
-   echo '   <div class="w3-cell">7</div>'
-   echo '   <div class="w3-cell">8</div>'
-   echo '   <div class="w3-cell">9</div>'
-   echo '   <div class="w3-cell">10</div>'
-   echo '</div>'
-   html_5cards 'Sir Bailey'  'Sir Destry' 'Sir Martin' \
-               'Sir Michael' 'Sir Vander'
+landscape_check() {
+   case $CARD_NAME in
+      # Nocturne's "Doom" cards
+      leprechaun|skulk|cursedvillage|tormentor|vampire|werewolf)
+         $LANDSCAPE_HEXES || msg "adding 'Hexes'"
+         LANDSCAPE_HEXES=true ;;
+
+      # Nocturne's "Fate" cards
+      druid|pixie|tracker|fool|bard|blessedvillage|idol|sacredgrove)
+         $LANDSCAPE_BOONS || msg "adding 'Boons'"
+         LANDSCAPE_BOONS=true ;;
+   esac
+
+   case $CARD_TYPE in
+      card|base) ;;
+      landmark|event|project|way)
+         if [ -z "$LANDSCAPE_A" ]; then
+            msg "assign '$CARD_NAME' to landscape card A"
+            LANDSCAPE_A=$CARD_NAME
+         elif [ -z "$LANDSCAPE_B" ]; then
+            msg "assign '$CARD_NAME' to landscape card B"
+            LANDSCAPE_B=$CARD_NAME
+            [ "$LANDSCAPE_A" = "$LANDSCAPE_B" ] &&
+               warn "landscape card A and B are duplicates!"
+         else
+            die "cannot add card '$CARD_NAME' of type '$CARD_TYPE' because both landscape A & B are already assigned"
+         fi
+         ;;
+      *) warn "trying to add '$CARD_NAME' of type '$CARD_TYPE' to the supply" ;;
+   esac
 }
 
-html_mixed_ruins() {
-   echo '<h2>Ruins</h2>'
-   echo '<div class="w3-cell-row w3-center w3-text-blue">'
-   echo '   <div class="w3-cell">1</div>'
-   echo '   <div class="w3-cell">2</div>'
-   echo '   <div class="w3-cell">3</div>'
-   echo '   <div class="w3-cell">4</div>'
-   echo '   <div class="w3-cell">5</div>'
-   echo '</div>'
-   html_5cards 'Abandoned_Mine' 'Ruined_Library' \
-      'Ruined_Market' 'Ruined_Village' 'Survivors'
+# landscape_header H2_HEADER
+# display a "Landscape Card" header if needed
+landscape_header() {
+   $LANDSCAPE_H1 || echo '<h1>"LANDSCAPE" CARDS</h1>'
+   LANDSCAPE_H1=true
+   printf '<h2>%s</h2>\n' "$1"
 }
 
-html_split_castles() {
-   echo '<h2>Castles</h2>'
-   echo '<div class="w3-cell-row w3-center w3-text-blue">'
-   echo '   <div class="w3-cell">1</div>'
-   echo '   <div class="w3-cell">2</div>'
-   echo '   <div class="w3-cell">3</div>'
-   echo '   <div class="w3-cell">4</div>'
-   echo '   <div class="w3-cell"></div>'
-   echo '</div>'
-   html_5cards 'Humble Castle' 'Crumbling Castle' \
-               'Small Castle'  'Haunted Castle'  ''
-   echo '<div class="w3-cell-row w3-center w3-text-blue">'
-   echo '   <div class="w3-cell">5</div>'
-   echo '   <div class="w3-cell">6</div>'
-   echo '   <div class="w3-cell">7</div>'
-   echo '   <div class="w3-cell">8</div>'
-   echo '   <div class="w3-cell"></div>'
-   echo '</div>'
-   html_5cards 'Opulent Castle' 'Sprawling Castle' \
-               'Grand Castle'   "King's Castle"   ''
+# artifacts: Renaissance + Nocturne's "lost in the woods" state
+landscape_artifacts() {
+   # cards in a "landscape card" orientation
+   set --
+   kingdom_hasnt 'fool'         || set -- "$@" 'lostinthewoods'
+   kingdom_hasnt 'borderguard'  || set -- "$@" 'lantern' 'horn'
+   kingdom_hasnt 'flagbearer'   || set -- "$@" 'flag'
+   kingdom_hasnt 'swashbuckler' || set -- "$@" 'treasurechest'
+   kingdom_hasnt 'treasurer'    || set -- "$@" 'key'
+   [ -z "$*" ] || landscape_header 'Artifacts (unique)'
+   card_lrows "$@"
 }
 
+landscape_main() {
+   # events/ways/projects landscape cards + boons
+   local b='' ; local h=''
+   local la=''; local lb=''
+   $LANDSCAPE_BOONS && b='boon' && h='Boons'
+   [ -n "$LANDSCAPE_A" ] && la='<span class="w3-badge w3-red">A</span>'
+   [ -n "$LANDSCAPE_B" ] && lb='<span class="w3-badge w3-red">B</span>'
+   if [ -n "$b$la$lb" ]; then
+      [ -n "$la$lb" ]  && h="${h}${h:+ + }Events/Landmarks/Ways/Projects"
+      landscape_header "$h"
+      card_lrow_labels '' "$la" "$lb"
+      card_lrow "$b" "$LANDSCAPE_A" "$LANDSCAPE_B"
+   fi
 
-SAUNA=true; KNIGHTS=true; #TODO DEBUG
-if $KNIGHTS || $RUINS; then
-   echo '<h1>Mixed-Piles (Shuffled)</h1>'
-   $KNIGHTS    && html_mixed_knights
-   $RUINS      && html_mixed_ruins
-fi
-if $CASTLES || $CATAPULT || $ENCAMPMENT || $GLADIATOR || $PATRICIAN || $SETTLERS || $SAUNA; then
-   echo '<h1>Split-Piles (Predetermined Order)</h1>'
-   $CASTLES    && html_split_castles
-   $CATAPULT   && html_split5 'Catapult'   'Rocks'
-   $ENCAMPMENT && html_split5 'Encampment' 'Plunder'
-   $GLADIATOR  && html_split5 'Gladiator'  'Fortune'
-   $PATRICIAN  && html_split5 'Patrician'  'Emporum'
-   $SETTLERS   && html_split5 'Settlers'   'Bustling Village'
-   $SAUNA      && html_split5 'Sauna'      'Avanto'
-fi
+   # hexes
+   if $LANDSCAPE_HEXES; then
+      landscape_header 'Hexes'
+      card_lrow     'hex' 'deludedenvious' 'miserabletwicemiserable'
+      card_lrow_labels '' '(double sided)' '(double sided)'
+   fi
+
+   landscape_artifacts
+}
+
 
 
 ################################################################################
-# NON-SUPPLY CARDS (not in supply but can be in the deck)
-# (Prizes, Shelters, Madman, Mercenary, Spoils, Travellers Upgrade,
-#  Heirlooms, Spirit cards, Zombie cards, Bat)
+# MODULE "MIXED": SUPPLY PILES WHICH ARE MIXED/SPLIT
+################################################################################
+# Mixed Pile:     [x] DarkAges: Knights
+# 5/5 Split Pile: [x] Empires : Catapult,Encampment,Gladiator,Patrician,Settlers
+#                 [x] Promos  : Sauna/Avanto in Promos
+# Others Splits : [x] Empires : Castle
 ################################################################################
 
-html_nonsupply_prizes() {
-   echo '<h2>Prizes</h2>'
-   echo '<div class="w3-cell-row w3-center w3-text-blue">'
-   echo '   <div class="w3-cell">1</div>'
-   echo '   <div class="w3-cell">2</div>'
-   echo '   <div class="w3-cell">3</div>'
-   echo '   <div class="w3-cell">4</div>'
-   echo '   <div class="w3-cell">5</div>'
-   echo '</div>'
-   html_5cards 'Bag of Gold' 'Diadem' 'Followers' 'Princess' 'Trusty Steed'
+mixed_init() {
+   MIXED_H1=false
 }
 
-html_nonsupply_shelters() {
-   echo '<h2>Shelters (in your starting hand)</h2>'
-   echo '<div class="w3-cell-row w3-center w3-text-blue">'
-   echo '   <div class="w3-cell">&nbsp;</div>'
-   echo '   <div class="w3-cell">&nbsp;</div>'
-   echo '   <div class="w3-cell">1</div>'
-   echo '   <div class="w3-cell">2</div>'
-   echo '   <div class="w3-cell">3</div>'
-   echo '</div>'
-   html_5cards '_Shelters' '' 'Hovel' 'Necropolis' 'Overgrown Estate'
+mixed_check() {
+   # if CARD_NAME is from a mixed deck, change card to be the one that
+   # should appear in the kingdom of DominionIndex
+   case $CARD_NAME in
+               catapult|rocks) card_find 'Catapult_Rocks'           ;;
+           encampment|plunder) card_find 'Encampment_Plunder'       ;;
+            gladiator|fortune) card_find 'Gladiator_Fortune'        ;;
+           patrician|emporium) card_find 'Patrician_Emporium'       ;;
+     settlers|bustlingvillage) card_find 'Settlers_BustlingVillage' ;;
+                 sauna|avanto) card_find 'Sauna_Avanto'             ;;
+     humblecastle|crumblingcastle|smallcastle|hauntedcastle|opulentcastle|sprawlingcastle|grandcastle|kingscastle)
+        card_find 'Castles' ;;   # ^-- *castle) ?
+     dameanna|damejosephine|damemolly|damenatalie|damesylvia|sirbailey|sirdestry|sirmartin|sirmichael|sirvander)
+        card_find 'Knights' ;;   # ^-- sir*|dame*) ?
+   esac
 }
 
-html_nonsupply_heirlooms() {
-   echo '<h2>Heirlooms</h2>'
-   html_5cards '_Heirlooms' ''        'Haunted Mirror' 'Magic Lamp'  'Goat'
-   html_5cards ''           'Pasture' 'Pouch'          'Cursed Gold' 'Lucky Coin '
+# mixed_header H2_HEADER
+# display a 'mixed supply' H1 header if needed and the given h2 header
+mixed_header() {
+   $MIXED_H1 || echo '<h1>MIXED/SPLIT SUPPLY PILES</h1>'
+   MIXED_H1=true
+   printf '<h2>%s</h2>\n' "$1"
+   msg "add '$1' as mixed/split piles"
 }
 
-html_nonsupply_travellers_page() {
-   echo '<h2>Page Upgrades</h2>'
-   html_5cards 'Page' 'Treasure Hunter' 'Warrior' 'Hero' 'Champion'
+mixed_split5() { # 5 "$1" card sitting on top of 5 "$2" cards
+   index_get $?
+   mixed_header "${INDEX} $1/$2 (5/5 split)"
+   card_row_labels "${INDEX}.1-5" "${INDEX}.6-10" '' '' ''
+   card_row        "$1"           "$2"            '' '' ''
 }
 
-html_nonsupply_travellers_peasant() {
-   echo '<h2>Peasant Upgrades</h2>'
-   html_5cards 'Peasant' 'Soldier' 'Fugitive' 'Disciple' 'Teacher'
+mixed_knights() {
+   index_get $?
+   mixed_header "${INDEX} Knights (shuffled)"
+   card_row_labels "${INDEX}.1" "${INDEX}.2"     "${INDEX}.3" "${INDEX}.4"   "${INDEX}.5"
+   card_row        'Dame Anna'  'Dame Josephine' 'Dame Molly' 'Dame Natalie' 'Dame Sylvia'
+   card_row        'Sir Bailey' 'Sir Destry'     'Sir Martin' 'Sir Michael'  'Sir Vander'
+   card_row_labels "${INDEX}.6" "${INDEX}.7"     "${INDEX}.8" "${INDEX}.9"   "${INDEX}.10"
+}
+
+mixed_split_castles() {
+   index_get $?
+   mixed_header "${INDEX} Castles (ordered)"
+   if [ "$BOARD_PLAYERS" -le 2 ]
+      then card_row_labels "${INDEX}.1"   "${INDEX}.2" "${INDEX}.3"   "${INDEX}.4" ''
+      else card_row_labels "${INDEX}.1-2" "${INDEX}.3" "${INDEX}.4-5" "${INDEX}.6" ''
+   fi
+   card_row 'Humble Castle'  'Crumbling Castle' 'Small Castle' 'Haunted Castle' ''
+   card_row 'Opulent Castle' 'Sprawling Castle' 'Grand Castle' "King's Castle"  ''
+   if [ "$BOARD_PLAYERS" -le 2 ]
+      then card_row_labels "${INDEX}.5"   "${INDEX}.6" "${INDEX}.7"     "${INDEX}.8" ''
+      else card_row_labels "${INDEX}.7-8" "${INDEX}.9" "${INDEX}.10-11" "${INDEX}.12" ''
+   fi
+}
+
+mixed_main() {
+   kingdom_hasnt 'Knights'                  || mixed_knights
+   kingdom_hasnt 'Castles'                  || mixed_split_castles
+   kingdom_hasnt 'Catapult_Rocks'           || mixed_split5 'Catapult'   'Rocks'
+   kingdom_hasnt 'Encampment_Plunder'       || mixed_split5 'Encampment' 'Plunder'
+   kingdom_hasnt 'Gladiator_Fortune'        || mixed_split5 'Gladiator'  'Fortune'
+   kingdom_hasnt 'Patrician_Emporium'       || mixed_split5 'Patrician'  'Emporium'
+   kingdom_hasnt 'Settlers_BustlingVillage' || mixed_split5 'Settlers'   'Bustling Village'
+   kingdom_hasnt 'Sauna_Avanto'             || mixed_split5 'Sauna'      'Avanto'
 }
 
 
+
+################################################################################
+# MODULE "NON-SUPPLY": cards gained/acquired via supply cards or events
+################################################################################
+#
+# cards that have asterisked cost and text distinguishing them as non-supply:
+# [x] Cornucopia: Tournament => Prizes (5 unique cards)
+# [x] Dark Ages : Hermit  => Madman    pile (10)
+# [x] Dark Ages : Urchin  => Mercenary pile (10)
+# [x] Dark Ages : Bandit Camp, Marauder, and Pillage   =>   Spoils pile (15)
+# [ ] Adventures: Page    => Page's    "Travellers upgrades"  (4 piles of 5)
+# [ ] Adventures: Peasant => Peasant's "Travellers upgrades"  (4 piles of 5)
+# [ ] Nocturne  : Vampire => exchanges with Bat pile (10)
+# [ ] Nocturne  : Leprechaun and Magic Lamp (heirloom)   =>   Wish pile (12)
+# [ ] Nocturne  : Haunted Mirror                 => Ghost (spirit) pile  (6)
+# [ ] Nocturne  : Devil's Workshop and Tormentor =>   Imp (spirit) pile (13)
+# [ ] Nocturne  : The Swamp's Gift (boon) => Will-o'-Wisp (spirit) pile (12)
+# [ ] Nocturne  : Exorcist => all 3 spirit piles (Will-o'-Wisp, Imp,  Ghost)
+# [ ] Menagerie : Bargain, Cavalry, Demand, Groom, Hostelry, Livery, Paddock
+#                 Ride, Scrap, Sleigh, Stampede, and Supplies =>  Horse (30)
+#
+# cards with no asterisked cost and no text distinguishing them as non-supply:
+# [>] Dark Ages : Shelters     => see players' hand section below
+# [>] Nocturne  : Heirlooms    => see players' hand section below
+# [>] Nocturne  : Necromancer  => 3 zombies cards: see mats' section
+# [ ] Promo     : Black Market => Black Market deck (all different!)
+#                 (from Kingdom cards not available in this game's supply)
+################################################################################
+
+nonsupply_init() {
+   NONSUPPLY_H1=false
+}
+
+# nonsupply_header H2_HEADER
+# display a 'non-supply' H1 header if needed and the given h2 header
+nonsupply_header() {
+   $NONSUPPLY_H1 || echo '<h1>NON-SUPPLY PILES</h1>'
+   NONSUPPLY_H1=true
+   printf '<h2>%s</h2>\n' "$1"
+   msg "add '$1' to non-supply pile"
+}
+
+# no args. non-supply decks for Cornucopia (prizes)
+nonsupply_cornucopia() {
+   kingdom_hasnt 'Tournament' && return
+   index_get
+   nonsupply_header "${INDEX} Prizes"
+   card_row_labels "${INDEX}.1" "${INDEX}.2" "${INDEX}.3" "${INDEX}.4" "${INDEX}.5"
+   card_row       'Bag of Gold' 'Diadem'     'Followers'  'Princess'   'Trusty Steed'
+}
+
+# no args. non-supply decks for Dark Ages (madman, mercenary, spoils)
+nonsupply_darkages() {
+   local madman=false    ; kingdom_has 'Hermit' && madman=true
+   local mercenary=false ; kingdom_has 'Urchin' && mercenary=true
+   local spoils=true
+   kingdom_has 'Bandit Camp' || kingdom_has 'Marauder' ||
+   kingdom_has 'Pillage'     || spoils=false
+
+   if $madman || $mercenary || $spoils; then
+      nonsupply_header 'Dark Ages'
+      $madman    && madman='Madman'       || madman=''
+      $mercenary && mercenary='Mercenary' || mercenary=''
+      $spoils    && spoils='Spoils'       || spoils=''
+      card_row "$madman" "$mercenary" "$spoils" '' '' #TODO ?
 #TODO
-# if $SHELTERS && ...; then
-   echo '<h1>Non-Supply Piles (TODO)</h1>'
-   $SHELTERS             && html_nonsupply_shelters
-   $HEIRLOOMS            && html_nonsupply_heirlooms
-   has_kingdom 'Page'    && html_nonsupply_travellers_page
-   has_kingdom 'Peasant' && html_nonsupply_travellers_peasant
-# fi
+#      [ -n "$madman" ] && madman='#10'
+#      [ -n "$mercernary" ] && mercenary='#10'
+#      [ -n "$spoils" ] && spoils='#15'
+   fi
+}
 
-################################################################################
-# PLAYERS STARTING HAND
-################################################################################
+nonsupply_travellers_page() {
+   nonsupply_header 'Pages Upgrades'
+   card_row 'Page' 'Treasure Hunter' 'Warrior' 'Hero' 'Champion'
+}
 
-html_starting_hand() {
-   echo "<h1>Players' Starting Hand</h1>"
-   html_5cards "$START_COPPER1" "$START_COPPER2" "$START_COPPER3" \
-               "$START_COPPER4" "$START_COPPER5"
-   html_5cards "$START_COPPER6" "$START_COPPER7"                  \
-               "$START_ESTATE1" "$START_ESTATE2" "$START_ESTATE3"
+nonsupply_travellers_peasant() {
+   nonsupply_header 'Peasant Upgrades'
+   card_row 'Peasant' 'Soldier' 'Fugitive' 'Disciple' 'Teacher'
+}
+
+nonsupply_main() {
+   nonsupply_cornucopia
+   nonsupply_darkages
+#   nonsupply_adventures  ##TODO
+#   nonsupply_nocturne    ##TODO
+   kingdom_has 'Page'       && nonsupply_travellers_page
+   kingdom_has 'Peasant'    && nonsupply_travellers_peasant
 }
 
 
-html_starting_hand
-
 
 ################################################################################
-# MATS: TODO!!!
+# MODULE "STARTHAND": Players' starting hands
+################################################################################
+# [x] Normally: 7 coppers + 3 estates
+# [ ] DarkAges: Shelters may replace the 3 estates
+# [ ] Nocturne: Heirlooms may replace some of the coppers
 ################################################################################
 
-# display mats we need
-mats() {
-   echo '<h1>Trash Mat<h1>'
-   mat 'Trash' # Trash: global mat that is always used
+starthand_init() {
+   # Regular starting hands (7 Coppers + 3 Estates):
+   STARTHAND_C1='Copper'
+   STARTHAND_C2='Copper'
+   STARTHAND_C3='Copper'
+   STARTHAND_C4='Copper'
+   STARTHAND_C5='Copper'
+   STARTHAND_C6='Copper'
+   STARTHAND_C7='Copper'
+   STARTHAND_E1='Estate'
+   STARTHAND_E2='Estate'
+   STARTHAND_E3='Estate'
 
-   echo '<h1>Per-Player Mats<h1>'
-   # Seaside mats: those form a mosaic
-   has_kingdom 'Island'         && html_mat 'Island'
-   has_kingdom 'Native Village' && html_mat 'Native Village'
-   has_kingdom 'Pirate Ship'    && html_mat 'Pirate Ship'
+   # Shelters may replace the Estates:
+   STARTHAND_SHELTERS=auto
+   # ^--- TODO: put SHELTER on true if one random kingdom is from Dark Ages
+   #            http://wiki.dominionstrategy.com/index.php/Shelters
 }
+
+starthand_check() {
+   case $CARD_NAME in
+
+   # Shelters:
+
+      # one specific shelter: add it, and also change type
+      # so that it won't get added in kindgoms
+        hovel) [ $STARTHAND_SHELTERS = true ] || msg "adding one shelter: $CARD_NAME"
+               STARTHAND_E1=$CARD_NAME
+               CARD_TYPE=shelter ;;
+        necropolis)
+               [ $STARTHAND_SHELTERS = true ] || msg "adding one shelter: $CARD_NAME"
+               STARTHAND_E2=$CARD_NAME
+               CARD_TYPE=shelter ;;
+        overgrownestate)
+               [ $STARTHAND_SHELTERS = true ] || msg "adding one shelter: $CARD_NAME"
+               STARTHAND_E3=$CARD_NAME
+               CARD_TYPE=shelter ;;
+      # all shelters
+        shelter|shelters)
+               #TODO, when it tries to find a card for 'shelters'
+               [ $STARTHAND_SHELTERS = true ] || msg "adding Shelters"
+               STARTHAND_SHELTERS=true
+               CARD_TYPE=shelter ;;
+
+   # Heirlooms:
+
+        # one specific heirloom: add it, and also change type
+        # so that it won't get added in kindgoms
+        hauntedmirror|magiclamp|goat|pasture|pouch|cursedgold|luckycoin)
+           starthand_add_heirloom "$CARD_NAME"
+           CARD_TYPE=heirloom ;;
+
+        # kingdom cards associated with the heirlooms:
+        cemetery) starthand_add_heirloom 'hauntedmirror' ;;
+      secretcave) starthand_add_heirloom 'magiclamp'     ;;
+           pixie) starthand_add_heirloom 'goat'          ;;
+         sheperd) starthand_add_heirloom 'pasture'       ;;
+         tracker) starthand_add_heirloom 'pouch'         ;;
+           pooka) starthand_add_heirloom 'cursedgold'    ;;
+            fool) starthand_add_heirloom 'luckycoin'     ;;
+            #TODO: image for those heirloom is missing
+   esac
+}
+
+starthand_finalize() {
+   case $STARTHAND_SHELTERS in
+      true) STARTHAND_E1='Hovel'
+            STARTHAND_E2='Necropolis'
+            STARTHAND_E3='Overgrown Estate' ;;
+         *) STARTHAND_SHELTERS=false        ;;
+   esac
+}
+
+# replace a copper in the starting hand with the given heirloom $1
+starthand_add_heirloom() {
+   msg "replacing a Copper with an Heirloom '$1' in the starting hand"
+
+   # return one copper (per player) to base cards
+   BASE_COPPER_N=$((BASE_COPPER_N + BOARD_PLAYERS))
+
+   [ "$STARTHAND_C1" = 'Copper' ] && { STARTHAND_C1=$1; return; }
+   [ "$STARTHAND_C2" = 'Copper' ] && { STARTHAND_C2=$1; return; }
+   [ "$STARTHAND_C3" = 'Copper' ] && { STARTHAND_C3=$1; return; }
+   [ "$STARTHAND_C4" = 'Copper' ] && { STARTHAND_C4=$1; return; }
+   [ "$STARTHAND_C5" = 'Copper' ] && { STARTHAND_C5=$1; return; }
+   [ "$STARTHAND_C6" = 'Copper' ] && { STARTHAND_C6=$1; return; }
+   [ "$STARTHAND_C7" = 'Copper' ] && { STARTHAND_C7=$1; return; }
+   die 'cannot set heirloom as starting hand has no copper'
+}
+
+starthand_cards() {
+   # first row labels (copper/heirlooms)
+   local l1=''; local l2=''; local l3=''; local l4=''; local l5=''
+   [ "$STARTHAND_C1" = "Copper" ] || l1='ToDo'
+   [ "$STARTHAND_C2" = "Copper" ] || l2='ToDo'
+   [ "$STARTHAND_C3" = "Copper" ] || l3='ToDo'
+   [ "$STARTHAND_C4" = "Copper" ] || l4='ToDo'
+   [ "$STARTHAND_C5" = "Copper" ] || l5='ToDo'
+   card_row_labels "$l1" "$l2" "$l3" "$l4" "$l5"
+
+   # cards
+   card_row "$STARTHAND_C1" "$STARTHAND_C2" "$STARTHAND_C3" "$STARTHAND_C4" "$STARTHAND_C5"
+   card_row "$STARTHAND_C6" "$STARTHAND_C7" "$STARTHAND_E1" "$STARTHAND_E2" "$STARTHAND_E3"
+
+   # second row labels (copper/heirlooms)
+   l1=''; l2=''
+   [ "$STARTHAND_C6" = "Copper" ] || l1='ToDo'
+   [ "$STARTHAND_C7" = "Copper" ] || l2='ToDo'
+
+   # second row labels (estates/shelters)
+   l3=''; l4=''; l5=''
+   if $STARTHAND_SHELTERS; then
+      index_get
+      if [ "$BOARD_PLAYERS" -le 4 ]; then
+         l3="${INDEX}.1-${BOARD_PLAYERS}"
+         l4="${INDEX}.5-$((4 + BOARD_PLAYERS))"
+         l5="${INDEX}.9-$((8 + BOARD_PLAYERS))"
+      else
+         l3="${INDEX}.1-4"
+         l4="${INDEX}.5-8"
+         l5="${INDEX}.9-12"
+         index_get
+         l3="${l3}, ${INDEX}.1"
+         l4="${l4}, ${INDEX}.5"
+         l5="${l5}, ${INDEX}.9"
+         [ "$BOARD_PLAYERS" -eq 6 ] && { l3="${l3}-2"; l4="${l4}-6"; l5="${l5}-10"; }
+      fi
+   fi
+   card_row_labels "$l1" "$l2" "$l3" "$l4" "$l5"
+}
+
+starthand_main() {
+   starthand_finalize
+   echo "<h1>STARTING HANDS</h1>"
+   starthand_cards
+}
+
+
+
+################################################################################
+# MODULE "MATS"
+################################################################################
+# [x] All     : Trash is a global mat     (used if there are any trashers:
+#                      http://wiki.dominionstrategy.com/index.php/Trasher)
+#               always include it (for now) as there are so many trashers.
+# [ ] Nocturne: Necromancer => include the Trash + 3 unique zombies cards:
+#                              Necromancer      : INDEX.4+
+#                              Zombie Apprentice: Index('Necromancer').1
+#                              Zombie Mason     : Index('Necromancer').2
+#                              Zombie Spy       : Index('Necromancer').3
+
+
+# All:
+# is needed is there's a trasher
+# there are so many, that it's best to include it always
+
+
+# [>] Nocturne  : Necromancer  => 3 zombies cards: see mats' section
+
+################################################################################
+
+mat_init() {
+   # no-trash and non-seaside mats
+   MAT_TRADEROUTE=false
+   MAT_VP=false
+   MAT_TAVERN=false
+   MAT_COFFERS=false
+   MAT_VILLAGERS=false
+   MAT_EXILE=false
+}
+
+mat_check() {
+   case $CARD_NAME in
+
+   # TradeRoute mat
+   traderoute) MAT_TRADEROUTE=true ;;
+
+   # VP mat (= VP token)
+   castle|castles|crumblingcastle|grandcastle|encampment|encampmentplunder|plunder|patrician|patricianemporium|emporium|triumph|chariotrace|farmersmarket|bishop|monument|ritual|sacrifice|salttheearth|temple|wedding|groundskeeper|wildhunt|conquest|goons|dominate|aqueduct|arena|basilica|baths|battlefield|colonnade|defiledshrine|labyrinth|mountainpass|tomb)
+      MAT_VP=true ;;
+
+   # Tavern mat (Adventures: card with Reserve type & Miser)
+   coinoftherealm|ratcatcher|guide|duplicate|transmogrify|distantlands|royalcarriage|winemerchant|teacher|miser)
+      MAT_TAVERN=true ;;
+
+   # Coffers mat (Guilds and Renaissance)
+   candlestickmaker|ducat|pageant|exploration|patron|plaza|silkmerchant|baker|butcher|guildhall|merchantguild|spices|swashbuckler|villain)
+      MAT_COFFERS=true ;;
+
+   # Villagers (Renaissance)
+   lackeys|actingtroupe|exploration|patron|silkmerchant|academy|recruiter|sculptor)
+      MAT_VILLAGERS=true ;;
+
+   # Exile mat (Menagerie)
+   cameltrain|stockpile|transport|banish|bountyhunter|cardinal|invest|coven|displace|gatekeeper|sanctuary|enclave|wayofthecamel|wayoftheworm)
+      MAT_EXILE=true ;;
+
+   esac
+}
+
 # show a mat
 # usage: mat title image
 html_mat() {
    case $1 in
-      *_mat) res "$1"       ;;
-          *) res "${1}_mat" ;;
+      *_mat) card_find "$1"       ;;
+          *) card_find "${1}_mat" ;;
    esac
    printf '<h2>%s</h2>'               "$title"
-   printf '<img src="%s" alt="%s"/>'  "$IMG" "$RES"
+   printf '<img src="%s" alt="%s"/>'  "$CARD_IMG" "$CARD_NAME"
+}
+
+mat_trash_seaside() {
+   local t='Trash'
+   local c3=''; local c4=''; local c5=''
+
+   if kingdom_has 'Necromancer'; then
+      msg 'Necromancer => adding Zombies (in the trash)'
+      c3='Zombie Apprentice'
+      c4='Zombie Mason'
+      c5='Zombie Spy'
+#      echo '<h2>Trash Mat (global) - Zombies in the trash</h2>'
+      index_get
+      card_row_labels ''  '' "${INDEX}.1" "${INDEX}.2" "${INDEX}.3"
+      card_row       "$t" '' "$c3"        "$c4"        "$c5"
+      t=''
+   fi
+
+   local seaside=false
+   # seaside mats: those form a mosaic
+   c3=''; c4=''; c5=''
+   kingdom_has 'Island'         && { seaside=true; c3='islandmat'       ; }
+   kingdom_has 'Pirate Ship'    && { seaside=true; c4='pirateshipmat'   ; }
+   kingdom_has 'Native Village' && { seaside=true; c5='nativevillagemat'; }
+   if $seaside; then
+#      if [ -n "$t" ]
+#         then echo '<h2>Trash Mat (global) / Seaside Mats</h2>'
+#         else echo '<h2>Seaside Mats</h2>'
+#      fi
+      card_row  "$t" '' "$c3" "$c4" "$c5"
+      t=''
+   fi
+
+   if [ -n "$t" ]; then
+#      echo '<h2>Trash Mat (global)</h2>'
+      card_row  "$t" '' '' '' ''
+   fi
+}
+
+# display mats we need
+mat_main() {
+   echo '<h1>MATS</h1>'
+   # mats in a "card" orientation
+   mat_trash_seaside
+
+   # cards in a "landscape card" orientation
+   set --
+   $MAT_TRADEROUTE && set -- "$@" traderoutemat
+   $MAT_VP         && set -- "$@" victorymat
+   $MAT_TAVERN     && set -- "$@" tavernmat
+   $MAT_COFFERS    && set -- "$@" coffers
+   $MAT_VILLAGERS  && set -- "$@" villagers
+   $MAT_EXILE      && set -- "$@" exilemat
+   card_lrows "$@"
 }
 
 
-echo '<h1>Trash Mat<h1>'
-echo '<img style="height:220px" src="game/mats/Dominion/Trash_mat.jpg" alt="Trash Mat" />'
+
+################################################################################
+# MODULE "TOKEN"
+################################################################################
+# VP       : certain cards,events,landmarks (Prosperity and Empires)
+# coin     : - Pirate Ship and Trade Route (Seaside)
+#            - Sinister Plot project (Renaissance)
+#            - mats: Coffers (Guilds and Renaissance), Villagers (Renaissance)
+# debt     : certain cards,events,landmarks (from Empires)
+# embargo  : Embargo (Seaside)
+# cube     : all projects (Renaissance)
+# adventure: (Adventures)
+################################################################################
+
+token_init() {
+   TOKEN_COIN=false
+   TOKEN_VP=false
+   TOKEN_DEBT=false
+   TOKEN_EMBARGO=false
+   TOKEN_CUBE=false
+
+   TOKEN_ADV_CARD=false
+   TOKEN_ADV_ACTION=false
+   TOKEN_ADV_MONEY=false
+   TOKEN_ADV_BUY=false
+
+   TOKEN_ADV_TRASHING=false
+   TOKEN_ADV_JOURNEY=false
+   TOKEN_ADV_ESTATE=false
+   TOKEN_ADV_PENALTY=false
+   TOKEN_ADV_MINUS2COST=false
+}
+
+token_check() {
+   case $CARD_NAME in
+
+   # victory tokens / victory mat
+   castle|castles|crumblingcastle|grandcastle|encampment|encampmentplunder|plunder|patrician|patricianemporium|emporium|triumph|chariotrace|farmersmarket|bishop|monument|ritual|sacrifice|salttheearth|temple|wedding|groundskeeper|wildhunt|conquest|goons|dominate|aqueduct|arena|basilica|baths|battlefield|colonnade|defiledshrine|labyrinth|mountainpass|tomb)
+      TOKEN_VP=true ;;
+
+   # coins tokens (cards without coffers/villagers mats)
+   pirateship|traderoute|sinisterplot) TOKEN_COIN=true ;;
+
+   # embargo tokens
+   embargo) TOKEN_EMBARGO=true ;;
+
+   # debt tokens
+   capital|tax|mountainpass|engineer|triumph|annex|cityquarter|donate|overlord|royalblacksmith|wedding|fortune)
+      TOKEN_DEBT=true ;;
+
+   # adventure "vanilla" tokens
+   peasant|soldier|fugitive|disciple|teacher)
+      TOKEN_ADV_CARD=true
+      TOKEN_ADV_ACTION=true
+      TOKEN_ADV_MONEY=true
+      TOKEN_ADV_BUY=true              ;;
+   pathfinding) TOKEN_ADV_CARD=true   ;;
+      lostarts) TOKEN_ADV_ACTION=true ;;
+      training) TOKEN_ADV_MONEY=true  ;;
+        seaway) TOKEN_ADV_BUY=true    ;;
+
+   # adventure "non-vanilla" tokens
+   bridgetroll|relic|borrow|ball|raid) TOKEN_ADV_PENALTY=true    ;;
+                                 plan) TOKEN_ADV_TRASHING=true   ;;
+              ranger|giant|pilgrimage) TOKEN_ADV_JOURNEY=true    ;;
+                          inheritance) TOKEN_ADV_ESTATE=true     ;;
+                                ferry) TOKEN_ADV_MINUS2COST=true ;;
+   esac
+
+   # cube tokens
+   case $CARD_TYPE in
+      project) TOKEN_CUBE=true ;;
+   esac
+}
+
+token_finalize() {
+   # coin tokens => if we have the mat, then we need coins!
+   $MAT_COFFERS   && TOKEN_COIN=true
+   $MAT_VILLAGERS && TOKEN_COIN=true
+
+   # victory token = vitory mat
+   TOKEN_VP=$MAT_VP
+}
+
+token_main() {
+   set --
+
+   $TOKEN_COIN           && set -- "$@" cointoken
+   $TOKEN_VP             && set -- "$@" vptoken
+   $TOKEN_DEBT           && set -- "$@" debttoken
+   $TOKEN_EMBARGO        && set -- "$@" embargotoken
+   $TOKEN_CUBE           && set -- "$@" cubetoken
+
+   $TOKEN_ADV_CARD       && set -- "$@" cardtoken
+   $TOKEN_ADV_ACTION     && set -- "$@" actiontoken
+   $TOKEN_ADV_MONEY      && set -- "$@" pluscointoken
+   $TOKEN_ADV_BUY        && set -- "$@" buytoken
+
+   $TOKEN_ADV_TRASHING   && set -- "$@" trashingtoken
+   $TOKEN_ADV_JOURNEY    && set -- "$@" journeytoken
+   $TOKEN_ADV_ESTATE     && set -- "$@" estatetoken
+   $TOKEN_ADV_PENALTY    && set -- "$@" minuscointoken
+   $TOKEN_ADV_MINUS2COST && set -- "$@" minuscosttoken
+
+   [ -n "$*" ] && echo '<h1>TOKENS</h1>'
+   card_rows "$@"
+}
+
 
 
 ################################################################################
+# MODULE "BOARD"
+################################################################################
 
-html_end
+board_init() {
+   # numbers of players (default is 2, otherwise it's giving as a flag)
+   BOARD_PLAYERS=2
+   case $1 in
+      -2|-3|-4|-5|-6) BOARD_PLAYERS=${1#-*} ;;
+      -*) die "unrecognized option: $1"     ;;
+   esac
+   msg "initializing board (for $BOARD_PLAYERS players)"
+
+   # init modules
+   index_init
+   base_init
+   kingdom_init
+   landscape_init
+   mixed_init
+   nonsupply_init
+   starthand_init
+   mat_init
+   token_init
+}
+
+# usage: board_add CARD
+# function that modify the global variable to put CARD in the game
+board_add() {
+   card_find "$1"
+   msg "setting up '$CARD_NAME' on the board"
+
+   mixed_check
+   base_check
+   kingdom_check
+   starthand_check
+   landscape_check
+   mat_check
+   token_check
+
+   [ "$CARD_TYPE" = 'card' ] && kingdom_add
+}
+
+
+# print board
+board_main() {
+cat << EOF
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="UTF-8">
+   <title>Board - Dominion Index</title>
+   <meta name="viewport" content="width=device-width, initial-scale=1">
+   <link rel="stylesheet" href="w3.css">
+</head>
+<body>
+   <div class="w3-auto">
+EOF
+
+      base_main
+      kingdom_main
+      landscape_main
+      mixed_main
+      nonsupply_main
+      starthand_main
+      mat_main
+      token_main
+
+      echo   '<div class="w3-container w3-center">'
+      printf 'Dominion Index - board for %d players (created on %s)\n' \
+             "$BOARD_PLAYERS"  "$(date)"
+      echo   '</div>'
+
+cat << EOF
+   </div>
+</body>
+</html>
+EOF
+}
+
+
+# process flag arguments
+board_setup() {
+   local i
+
+   # we already the player option (if any), so discard it
+   case $1 in
+      -*) shift ;;
+   esac
+
+   # if $1 is a comma-separated lists, transform it into arguments
+   case $1 in
+      *,*) args=$1; shift
+           for i in $(printf %s "$args" | tr -d ' ' | tr , ' '); do
+               set -- "$@" "$i"
+           done
+   esac
+
+   # add all cards
+   for i; do
+       board_add "$i"
+   done
+}
+
+
+
+################################################################################
+# MAIN SCRIPT
+################################################################################
+
+main() {
+   board_init  "$@"
+   board_setup "$@"
+   board_main
+}
+
+main "$@"
