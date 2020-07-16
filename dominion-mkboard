@@ -249,7 +249,7 @@ card_print() {
    echo                  '   <div style="padding:3px">'
    [ -n "$1" ] && printf '      <a href="%s">\n' "$img"
    echo                  '         <img style="width:220px"'
-   [ -n "$1" ] && echo   '              class="w3-border-black w3-round-xlarge w3-hover-sepia"'
+   [ -n "$1" ] && echo   '              class="w3-animate-zoom w3-card w3-border-black w3-round-xlarge w3-hover-sepia"'
    [ -n "$1" ] && printf '              src="%s" alt="%s" />\n' "$img" "$title"
    [ -z "$1" ] && echo   '              src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=">'
    [ -n "$1" ] && echo   '      </a>'
@@ -316,7 +316,7 @@ card_lprint() {
    echo                  '   <div style="padding:3px">'
    [ -n "$1" ] && printf '      <a href="%s">\n' "$CARD_IMG"
    echo                  '         <img style="width:352px; max-height:220px"'
-   [ -n "$1" ] && echo   '              class="w3-border-black w3-round-xlarge w3-hover-sepia"'
+   [ -n "$1" ] && echo   '              class="w3-animate-zoom w3-card w3-border-black w3-round-xlarge w3-hover-sepia"'
    [ -n "$1" ] && printf '              src="%s" alt="%s" />\n' "$CARD_IMG" "$CARD_NAME"
    [ -z "$1" ] && echo   '              src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=">'
    [ -n "$1" ] && echo   '      </a>'
@@ -913,14 +913,14 @@ mixed_split_castles() {
    index_get $?
    mixed_header "${INDEX} Castles (ordered)"
    if [ "$BOARD_PLAYERS" -le 2 ]
-      then card_row_labels "${INDEX}.1"   "${INDEX}.2" "${INDEX}.3"   "${INDEX}.4" ''
+      then card_row_labels "${INDEX}.1"   "${INDEX}.3" "${INDEX}.5"   "${INDEX}.6" ''
       else card_row_labels "${INDEX}.1-2" "${INDEX}.3" "${INDEX}.4-5" "${INDEX}.6" ''
    fi
    card_row 'Humble Castle'  'Crumbling Castle' 'Small Castle' 'Haunted Castle' ''
    card_row 'Opulent Castle' 'Sprawling Castle' 'Grand Castle' "King's Castle"  ''
    if [ "$BOARD_PLAYERS" -le 2 ]
-      then card_row_labels "${INDEX}.5"   "${INDEX}.6" "${INDEX}.7"     "${INDEX}.8" ''
-      else card_row_labels "${INDEX}.7-8" "${INDEX}.9" "${INDEX}.10-11" "${INDEX}.12" ''
+      then card_row_labels "${INDEX}.7"   "${INDEX}.9" "${INDEX}.10" "${INDEX}.12" ''
+      else card_row_labels "${INDEX}.7-8" "${INDEX}.9" "${INDEX}.10" "${INDEX}.11-12" ''
    fi
 }
 
