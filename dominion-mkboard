@@ -1361,7 +1361,7 @@ html_mat() {
 }
 
 mat_trash_seaside() {
-   local t='Trash'
+   local t='Trash'; lt='#1'
    local c3=''; local c4=''; local c5=''
 
    if kingdom_has 'Necromancer'; then
@@ -1371,29 +1371,46 @@ mat_trash_seaside() {
       c5='Zombie Spy'
 #      echo '<h2>Trash Mat (global) - Zombies in the trash</h2>'
       index_get
-      card_row_labels ''  '' "${INDEX}.1" "${INDEX}.2" "${INDEX}.3"
-      card_row       "$t" '' "$c3"        "$c4"        "$c5"
-      t=''
+      card_row_labels "$lt" '' "${INDEX}.1" "${INDEX}.2" "${INDEX}.3"
+      card_row        "$t"  '' "$c3"        "$c4"        "$c5"
+      t=''; lt=''
    fi
 
    local seaside=false
    # seaside mats: those form a mosaic
    c3=''; c4=''; c5=''
-   kingdom_has 'Island'         && { seaside=true; c3='islandmat'       ; }
-   kingdom_has 'Pirate Ship'    && { seaside=true; c4='pirateshipmat'   ; }
-   kingdom_has 'Native Village' && { seaside=true; c5='nativevillagemat'; }
+   l3=''; l4=''; l5=''
+
+   kingdom_hasnt 'Island' || {
+      index_get $?
+      seaside=true; c3='islandmat'
+      [ "$BOARD_PLAYERS" -le 2 ] && l3="${INDEX}.11-12" || l3="#$BOARD_PLAYERS"
+   }
+   kingdom_hasnt 'PirateShip' || {
+      index_get $?
+      seaside=true; c4='pirateshipmat'
+      [ "$BOARD_PLAYERS" -le 2 ] && l4="${INDEX}.11-12" || l4="#$BOARD_PLAYERS"
+   }
+   kingdom_hasnt 'NativeVillage' || {
+      index_get $?
+      seaside=true; c5='nativevillagemat'
+      [ "$BOARD_PLAYERS" -le 2 ] && l5="${INDEX}.11-12" || l5="#$BOARD_PLAYERS"
+   }
+
    if $seaside; then
 #      if [ -n "$t" ]
 #         then echo '<h2>Trash Mat (global) / Seaside Mats</h2>'
 #         else echo '<h2>Seaside Mats</h2>'
 #      fi
-      card_row  "$t" '' "$c3" "$c4" "$c5"
+      card_row        "$t"  '' "$c3" "$c4" "$c5"
+      card_row_labels "$lt" '' "$l3" "$l4" "$l5"
       t=''
    fi
 
    if [ -n "$t" ]; then
 #      echo '<h2>Trash Mat (global)</h2>'
-      card_row  "$t" '' '' '' ''
+      card_row        "$t"  '' '' '' ''
+      card_row_labels "$lt" '' '' '' ''
    fi
 }
 
