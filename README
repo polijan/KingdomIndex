@@ -1,10 +1,15 @@
 DOMINION INDEX APP
 
 SETUP:
+
+   install with:
+   git clone https://github.com/notevenodd/dominion-index.git
+
    call the ./install script, this will:
    1) clone the dominion randomizer (KingdomCreator on GitHub) from github
    2) set up the 'app' directory
    3) set up ~/.dominion-index personal directroy where boards are stored
+
 
 TO GENERATE A BOARD:
    use mkboard script (pass the cards as parameters)

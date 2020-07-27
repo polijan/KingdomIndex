@@ -12,14 +12,14 @@ if ! [ -d 'app' ]; then
    echo 'creating directory "app" and linking files into it'
    mkdir --verbose app
    ( cd app || exit
-     for i in ../KingdomCreator/docs/img              \
-              ../KingdomCreator/docs/rules            \
-              ../KingdomCreator/docs/*.css            \
-              ../KingdomCreator/docs/*.js             \
-              ../DominionIndex/KingdomCreator/*.html  \
-              ../DominionIndex/*.html                 \
-              ../DominionIndex/img_index              \
-              ../DominionIndex/res                 ; do
+     for i in ../KingdomCreator/docs/img                   \
+              ../KingdomCreator/docs/rules                 \
+              ../KingdomCreator/docs/*.css                 \
+              ../KingdomCreator/docs/*.js                  \
+              ../DominionIndex/KingdomCreator_html/*.html  \
+              ../DominionIndex/*.html                      \
+              ../DominionIndex/img_index                   \
+              ../DominionIndex/res                      ; do
          ln --verbose -s "$i"
      done
    )
