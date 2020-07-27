@@ -1,0 +1,47 @@
+#!/bin/sh
+
+# Usage: $0
+# create and populate the 'app' directory to be served
+
+if ! [ -d "KingdomCreator" ]; then
+   echo 'cloning KingdomCreator randomizer from github (requires internet)'
+   git clone https://github.com/blakevanlan/KingdomCreator.git
+fi
+
+if ! [ -d 'app' ]; then
+   echo 'creating directory "app" and linking files into it'
+   mkdir --verbose app
+   ( cd app || exit
+     for i in ../KingdomCreator/docs/img              \
+              ../KingdomCreator/docs/rules            \
+              ../KingdomCreator/docs/*.css            \
+              ../KingdomCreator/docs/*.js             \
+              ../DominionIndex/KingdomCreator/*.html  \
+              ../DominionIndex/*.html                 \
+              ../DominionIndex/img_index              \
+              ../DominionIndex/res                 ; do
+         ln --verbose -s "$i"
+     done
+   )
+fi
+
+CONFIG=$HOME/.dominion-index
+BOARDS=$CONFIG/boards
+if ! [ -d "$BOARDS" ]; then
+   printf 'creating board config directory: %s\n' "$BOARDS"
+   mkdir --verbose -p "$BOARDS"
+fi
+if ! [ -f "$BOARDS/board.html" ]; then
+   echo 'creating initial dummy board.html'
+   { echo '<html><body>'
+     echo '<h1>No board has been generated yet.</h1>'
+     echo '</body></html>'
+   } >> $BOARDS/board.html
+fi
+
+cd app || exit
+[ -f board.html ] || ln --verbose -s "$BOARDS/board.html"
+if ! [ -f game-index.html ]; then
+   echo 'creating game content pages'
+   ../DominionIndex/mkgames.sh
+fi

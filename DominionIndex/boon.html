@@ -4,7 +4,7 @@
    <meta charset="UTF-8">
    <title>Boon - Dominion Index</title>
    <meta name="viewport" content="width=device-width, initial-scale=1">
-   <link rel="stylesheet" href="w3.css">
+   <link rel="stylesheet" href="res/w3.css">
 </head>
 <style>
    html, body { height: 100%; }
@@ -16,7 +16,7 @@
    <div class="w3-auto w3-center">
 
       <img id="card" alt="Boon"
-           class="vertical-center w3-card-4 w3-round-xlarge w3-border-black"
+           class="vertical-center w3-black w3-card-4 w3-round-xlarge w3-border-black"
            style="border-width:16px; border-style:solid"
            src="app/img_index/nocturne_back_boon.jpg"
       />
@@ -45,7 +45,7 @@
    ];
 
    var item=items[Math.floor(Math.random() * items.length)];
-   item="app/img/cards/nocturne_boon_" + item + ".jpg";
+   item="img/cards/nocturne_boon_" + item + ".jpg";
    document.getElementById("card").src=item;
 </script>
 </html>

@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Usage: $0 [-N] [CARD,...,...] [CARD]...
-# setup a Dominion Board with the given CARDS and prints its HTML representation
+# prints on stdout an HTML Dominion Board with the given CARDS
 #
 # OPTIONS:
 #   -N where N is 2..6, controls the number of players (default is 2)
@@ -10,7 +10,7 @@
 # First argument (after options) can be a comma separated list of cards
 # Normally, 10 kingdom cards should be given.
 #
-# you can control
+# tips:
 # to always include Potions,  include the card 'Potion'
 # to always include Colonies, include the card 'Colony'
 # to always include Ruins  ,  include the (virtual) card 'Ruins'
@@ -125,8 +125,8 @@ card_name() {
 #                                              project, way, artifact, ...)
 card_find() {
    card_name  "$1"
-   card_find_ 'app/img/cards' ||
-   card_find_ 'app/img_index' ||
+   card_find_ 'img/cards' ||
+   card_find_ 'img_index' ||
    die "cannot find image for '$CARD_NAME'"
 }
 
@@ -693,12 +693,13 @@ kingdom_label() {
 
       # victory cards in the kingdom pile => 8/12 cards
       castles|vineyard|greathall|tunnel|gardens|mill|island|silkroad|feodum|cemetery|duke|distantlands|harem|nobles|fairgrounds|farmland)
-         n=12; [ "$BOARD_PLAYERS" -eq 2 ] && n=8;;
+            n=12
+            [ "$BOARD_PLAYERS" -eq 2 ] && n=8 ;;
 
-      # other kingdom which aren't 10 cards pile (and at most 12 cards)
+      # other kingdoms which aren't 10 cards pile (and at most 12 cards)
       port) n=12 ;;
 
-      # kingdoms with >12 cards (special treatment using alphabetical indexes)
+      # kingdoms with >12 cards (use alphabetical indexes)
       rats) local rat1; index_get; rat1=$INDEX;
             local rat2; index_get; rat2=$INDEX;
             label="${rat1}.1-10, ${rat2}.1-10"
@@ -1349,17 +1350,6 @@ mat_check() {
    esac
 }
 
-# show a mat
-# usage: mat title image
-html_mat() {
-   case $1 in
-      *_mat) card_find "$1"       ;;
-          *) card_find "${1}_mat" ;;
-   esac
-   printf '<h2>%s</h2>'               "$title"
-   printf '<img src="%s" alt="%s"/>'  "$CARD_IMG" "$CARD_NAME"
-}
-
 mat_trash_seaside() {
    local t='Trash'; lt='#1'
    local c3=''; local c4=''; local c5=''
@@ -1463,6 +1453,7 @@ token_init() {
    TOKEN_ADV_ESTATE=false
    TOKEN_ADV_PENALTY=false
    TOKEN_ADV_MINUS2COST=false
+   TOKEN_ADV_MINUSCARD=false
 }
 
 token_check() {
@@ -1519,23 +1510,26 @@ token_finalize() {
 token_main() {
    token_finalize
    set --
+                                                        #TODO: add a label
+   $TOKEN_COIN           && set -- "$@" cointoken       #&infin;
+   $TOKEN_VP             && set -- "$@" vptoken         #&infin;
+   $TOKEN_DEBT           && set -- "$@" debttoken       #&infin;
+   $TOKEN_EMBARGO        && set -- "$@" embargotoken    #&infin;
+   $TOKEN_CUBE           && set -- "$@" cubetoken       #&$BOARD_PLAYERS
 
-   $TOKEN_COIN           && set -- "$@" cointoken
-   $TOKEN_VP             && set -- "$@" vptoken
-   $TOKEN_DEBT           && set -- "$@" debttoken
-   $TOKEN_EMBARGO        && set -- "$@" embargotoken
-   $TOKEN_CUBE           && set -- "$@" cubetoken
+   $TOKEN_ADV_CARD       && set -- "$@" cardtoken       #&$BOARD_PLAYERS
+   $TOKEN_ADV_ACTION     && set -- "$@" actiontoken     #&$BOARD_PLAYERS
+   $TOKEN_ADV_MONEY      && set -- "$@" pluscointoken   #&$BOARD_PLAYERS
+   $TOKEN_ADV_BUY        && set -- "$@" buytoken        #&$BOARD_PLAYERS
 
-   $TOKEN_ADV_CARD       && set -- "$@" cardtoken
-   $TOKEN_ADV_ACTION     && set -- "$@" actiontoken
-   $TOKEN_ADV_MONEY      && set -- "$@" pluscointoken
-   $TOKEN_ADV_BUY        && set -- "$@" buytoken
-
-   $TOKEN_ADV_TRASHING   && set -- "$@" trashingtoken
-   $TOKEN_ADV_JOURNEY    && set -- "$@" journeytoken
-   $TOKEN_ADV_ESTATE     && set -- "$@" estatetoken
-   $TOKEN_ADV_PENALTY    && set -- "$@" minuscointoken
-   $TOKEN_ADV_MINUS2COST && set -- "$@" minuscosttoken
+   $TOKEN_ADV_TRASHING   && set -- "$@" trashingtoken   #&$BOARD_PLAYERS
+   $TOKEN_ADV_JOURNEY    && set -- "$@" journeytoken    #&$BOARD_PLAYERS
+   $TOKEN_ADV_ESTATE     && set -- "$@" estatetoken     #&$BOARD_PLAYERS
+   $TOKEN_ADV_PENALTY    && set -- "$@" minuscointoken  #&$BOARD_PLAYERS
+   $TOKEN_ADV_MINUS2COST && set -- "$@" minuscosttoken  #&$BOARD_PLAYERS
+   $TOKEN_ADV_MINUSCARD  && set -- "$@" minuscardtoken  #&$BOARD_PLAYERS
+        # ^-- TODO!!!! currently, this never gets true!!!!
+        #     see dominion wiki 'Adventure tokens'
 
    [ -n "$*" ] && echo '<h1>TOKENS</h1>'
    card_rows "$@"
@@ -1596,8 +1590,15 @@ cat << EOF
    <meta charset="UTF-8">
    <title>Board - Dominion Index</title>
    <meta name="viewport" content="width=device-width, initial-scale=1">
-   <link rel="stylesheet" href="w3.css">
+   <link rel="stylesheet" href="res/w3.css">
 </head>
+<style>
+   @font-face {
+      src: url('res/MagicSchoolOne.ttf');
+      font-family: 'MagicSchool';
+   }
+   h1, h2, h3 { font-family: 'MagicSchool'; }
+</style>
 <body>
    <div class="w3-auto">
 EOF

@@ -1,0 +1,13 @@
+#!/bin/sh
+
+# Usage: $0
+# generate the board using DominionIndex/mkboard.sh
+
+CONFIG=$HOME/.dominion-index
+BOARDS=$CONFIG/boards
+NEW="$BOARDS/board-$(date +%F-%Hh%Mm%Ss).html"
+
+cd app  # (we 'cd' to "app" so that images can be found)
+../DominionIndex/mkboard.sh "$@" > "$NEW"
+rm --verbose "$BOARDS/board.html"
+ln --verbose -s "$NEW" "$BOARDS/board.html"
