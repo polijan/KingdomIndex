@@ -72,11 +72,31 @@
 ################################################################################
 
 log()   { local c; c=$1; shift; printf '%b %s\n' "$c" "$*" >&2; }
-msg()   { log '\033[32m[ msg ]\033[0m'   "$*"; }
-die()   { log '\033[1;31m[abort]\033[0m' "$*"; exit 3; }
-warn()  { log '\033[1;33m[warn!]\033[0m' "$*"; }
-debug() { log '\033[1;36m[debug]\033[0m' "$*"; }
-
+msg()   {
+   if [ -t 2 ]
+      then log '\033[32m[ msg ]\033[0m'                          "$*"
+      else log '<span class="w3-text-green">[ msg ]</span>'      "$*"
+   fi
+}
+die()   {
+   if [ -t 2 ]
+      then log '\033[1;31m[abort]\033[0m'                        "$*"
+      else log '<strong class="w3-text-red">[abort]</strong>'    "$*"
+   fi
+   exit 3
+}
+warn()  {
+   if [ -t 2 ]
+      then log '\033[1;33m[warn!]\033[0m'                        "$*"
+      else log '<strong class="w3-text-yellow">[warn!]</strong>' "$*"
+   fi
+}
+debug() {
+   if [ -t 2 ]
+      then log '\033[1;36m[debug]\033[0m'                        "$*"
+      else log '<span class="w3-text-blue">[debug]</span>'       "$*"
+   fi
+}
 
 ################################################################################
 # MODULE "INDEX": update alphabetical index

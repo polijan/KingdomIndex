@@ -18,6 +18,7 @@ if ! [ -d 'app' ]; then
               ../KingdomCreator/docs/*.js                  \
               ../DominionIndex/KingdomCreator_html/*.html  \
               ../DominionIndex/*.html                      \
+              ../DominionIndex/cgi-bin                     \
               ../DominionIndex/img_index                   \
               ../DominionIndex/res                      ; do
          ln --verbose -s "$i"
@@ -25,22 +26,18 @@ if ! [ -d 'app' ]; then
    )
 fi
 
-CONFIG=$HOME/.dominion-index
-BOARDS=$CONFIG/boards
-if ! [ -d "$BOARDS" ]; then
-   printf 'creating board config directory: %s\n' "$BOARDS"
-   mkdir --verbose -p "$BOARDS"
-fi
-if ! [ -f "$BOARDS/board.html" ]; then
-   echo 'creating initial dummy board.html'
-   { echo '<html><body>'
-     echo '<h1>No board has been generated yet.</h1>'
-     echo '</body></html>'
-   } >> $BOARDS/board.html
-fi
 
 cd app || exit
-[ -f board.html ] || ln --verbose -s "$BOARDS/board.html"
+
+if ! [ -f board.html ]; then
+   echo 'creating an initial board'
+   ../DominionIndex/mkboard.sh -2 >board.html
+
+   # another (simpler) solution would be to just create a dummy board:
+   # echo '<html><body><h1>No board has been generated yet.</h1></body></html>' \
+   #      >> board.html
+fi
+
 if ! [ -f game-index.html ]; then
    echo 'creating game content pages'
    ../DominionIndex/mkgames.sh

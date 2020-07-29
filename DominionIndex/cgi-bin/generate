@@ -1,0 +1,126 @@
+#!/bin/sh
+
+# Usage: QUERY_STRING=... $0
+# board generator as a CGI script wrapping DominionIndex/mkboard.sh
+
+# start of the HTML page
+begin() {
+cat << EOF
+Content-Type: text/html
+
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="UTF-8">
+   <title>Board Generator - Dominion Index</title>
+   <meta name="viewport" content="width=device-width, initial-scale=1">
+   <link rel="stylesheet" href="/res/w3.css">
+</head>
+<style>
+   @font-face {
+      src: url('/res/MagicSchoolOne.ttf');
+      font-family: 'MagicSchool';
+   }
+   h1, h2, h3 { font-family: 'MagicSchool'; }
+</style>
+<body class="w3-sand">
+<div class="w3-content w3-margin w3-light-grey">
+   <div class="w3-card-4" style="max-height:75%">
+      <div class="w3-indigo w3-large w3-center">
+         <h2>Board Generator</h2>
+      </div>
+      <div class="w3-container w3-section">A new board is being generated.</div>
+      <details open class="w3-container w3-section">
+         <summary>Board Generator Process</summary>
+         <pre id="console"
+              class="w3-black w3-padding w3-margin"
+              style="margin:0; overflow-x:scroll; overflow-y:scroll">
+<span class="w3-white">DOMINION INDEX - Board Generator CGI</span>
+
+EOF
+}
+
+# end of the HTML page
+# if we pass an argument, prints it and exit the script
+end() {
+   [ -n "$*" ] && printf '<span class="w3-text-red">%s</span>\n' "$*"
+   cat << EOF
+
+<span class="w3-white">END</span></pre>
+      </details>
+      <div class="w3-container w3-center w3-margin w3-padding">
+         <div>if generation went well:<div>
+         <!-- <a href="/board.html"><strong>see the new board</strong></a>. -->
+         <a href="/board.html"
+            class="w3-large w3-btn w3-ripple w3-hover-white w3-hover-text-blue w3-indigo">
+            Open Board
+         </a>
+      </div>
+   </div>
+</div>
+</body>
+</html>
+EOF
+   [ -n "$*" ] && exit 1
+}
+
+
+span() { # open a <span> tag in which we write a command we run
+   printf '<span class="w3-text-sand"><strong>$</strong> %s\n' "$*"
+}
+
+#-------------------------------------------------------------------------------
+
+# show QUERY_STRING we get (GET method)
+begin
+span   'printf %s "$QUERY_STRING"</span>'
+#printf '%s\n' "${span}printf %s \"\$QUERY_STRING\"</span>"
+#printf '<span class="w3-text-sand"><strong>$</strong> printf %%s "$QUERY_STRING"</span>\n'
+printf '%s\n\n' "$QUERY_STRING"
+
+# extract PLAYERS argument from the QUERY_STRING
+case $QUERY_STRING in
+   'players=2&cards='*) PLAYERS=2 ;;
+   'players=3&cards='*) PLAYERS=3 ;;
+   'players=4&cards='*) PLAYERS=4 ;;
+   'players=5&cards='*) PLAYERS=5 ;;
+   'players=6&cards='*) PLAYERS=6 ;;
+   *) end 'QUERY_STRING should start with players=2..6' ;;
+esac
+
+# extract CARDS argument from the percent-encoded QUERY_STRING
+# We restore , (%2C) and ' (%27), and remove / (%2F) and space (%20 or +)
+CARDS=$(printf %s "$QUERY_STRING"          |
+        sed -e 's/^players=[2-6]&cards=//' \
+            -e 's/\+//g' -e 's/%20//g'     \
+            -e 's/%2[fF]//g'               \
+            -e "s/%27/'/g"                 \
+            -e 's/%2[cC]/,/g'              )
+# if we had further %-encoded stuff, exit
+case $CARDS in
+   *%*) end 'invalid CARDS arguments (still contains %)' ;;
+esac
+
+
+# let's make sure we are in "app" directory (where images can be read from):
+# - when serving with busybox' httpd, pwd is "DominionIndex/cgi-bin" directory,
+# - but with python3's http.server  , pwd is "app" directory
+span 'pwd</span>'
+printf "%s\n" "$PWD"
+case $PWD in
+                   */app) ;;
+           */app/cgi-bin) span 'cd ..</span>'; cd .. ;;
+ */DominionIndex/cgi-bin) span 'cd ../../app</span>'
+                                cd ../../app || end 'cannot cd to app'    ;;
+                       *) end "cannot understand where I'm running: $PWD" ;;
+esac
+echo
+
+
+# and finally, we can call mkboard.sh
+span "../DominionIndex/mkboard.sh -${PLAYERS} \\"
+printf '     "%s" \\\n     2>&1  >board.html</span>\n\n'  "$CARDS"
+# redirect stdout to board.html and stderr to stdout (order matters!) :
+../DominionIndex/mkboard.sh "-$PLAYERS" "$CARDS" 2>&1 >board.html
+
+end
