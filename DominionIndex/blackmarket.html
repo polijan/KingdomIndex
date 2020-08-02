@@ -20,7 +20,7 @@
          <div class="w3-cell">
             <div>
                <img id="card1" alt="Black Market's Choice 1"
-                    class="w3-black w3-card-4 w3-round-xlarge w3-border-black w3-margin"
+                    class="w3-black w3-card-4 w3-round-xlarge w3-border-black w3-margin w3-animate-zoom"
                     style="border-width:16px; border-style:solid"
                     src="img_index/common_back.jpg"
                />
@@ -33,7 +33,7 @@
          <div class="w3-cell">
             <div>
                <img id="card2" alt="Black Market's Choice 2"
-                    class="w3-black w3-card-4 w3-round-xlarge w3-border-black w3-margin"
+                    class="w3-black w3-card-4 w3-round-xlarge w3-border-black w3-margin w3-animate-zoom"
                     style="border-width:16px; border-style:solid"
                     src="img_index/common_back.jpg"
                />
@@ -46,7 +46,7 @@
          <div class="w3-cell">
             <div>
                <img id="card3" alt="Black Market's Choice 3"
-                    class="w3-black w3-card-4 w3-round-xlarge w3-border-black w3-margin"
+                    class="w3-black w3-card-4 w3-round-xlarge w3-border-black w3-margin w3-animate-zoom"
                     style="border-width:16px; border-style:solid"
                     src="img_index/common_back.jpg"
                />
@@ -67,6 +67,7 @@
 
 </body>
 <script>
+   /* kingdoms (except blackmarket itself of course) */
    var items=[
 "img/cards/baseset2_artisan",
 "img/cards/baseset2_bandit",
@@ -94,12 +95,6 @@
 "img/cards/baseset2_village",
 "img/cards/baseset2_witch",
 "img/cards/baseset2_workshop",
-"img/cards/baseset_adventurer",
-"img/cards/baseset_chancellor",
-"img/cards/baseset_feast",
-"img/cards/baseset_spy",
-"img/cards/baseset_thief",
-"img/cards/baseset_woodcutter",
 "img/cards/intrigue2_baron",
 "img/cards/intrigue2_bridge",
 "img/cards/intrigue2_conspirator",
@@ -126,12 +121,6 @@
 "img/cards/intrigue2_tradingpost",
 "img/cards/intrigue2_upgrade",
 "img/cards/intrigue2_wishingwell",
-"img/cards/intrigue_coppersmith",
-"img/cards/intrigue_greathall",
-"img/cards/intrigue_saboteur",
-"img/cards/intrigue_scout",
-"img/cards/intrigue_secretchamber",
-"img/cards/intrigue_tribute",
 "img/cards/seaside_ambassador",
 "img/cards/seaside_bazaar",
 "img/cards/seaside_caravan",
@@ -417,48 +406,93 @@
 "img/cards/menagerie_supplies",
 "img/cards/menagerie_villagegreen",
 "img/cards/menagerie_wayfarer",
-"img_index/promos_captain", /* certain promos card in img_index/ */
+"img_index/promos_captain",  /* --- promos (some cards in 'img_index' --- */
 "img_index/promos_church",
 "img_index/promos_dismantle",
 "img/cards/promos_envoy",
 "img/cards/promos_governor",
 "img/cards/promos_prince",
 "img/cards/promos_stash",
-"img/cards/promos_walledvillage", /* below this: mixed piles */
-"img/cards/darkages_dameanna", 
-"img/cards/darkages_damejosephine",
-"img/cards/darkages_damemolly",
-"img/cards/darkages_damenatalie",
-"img/cards/darkages_damesylvia",
-"img/cards/darkages_sirbailey",
-"img/cards/darkages_sirdestry",
-"img/cards/darkages_sirmartin",
-"img/cards/darkages_sirmichael",
-"img/cards/darkages_sirvander",
-"img/cards/empires_encampment",
-"img/cards/empires_plunder",
-"img/cards/empires_patrician",
-"img/cards/empires_emporium",
-"img/cards/empires_settlers",
-"img/cards/empires_bustlingvillage",
-"img/cards/empires_catapult",
-"img/cards/empires_rocks",
-"img/cards/empires_gladiator",
-"img/cards/empires_fortune",
-"img_index/empires_crumblingcastle",
-"img_index/empires_grandcastle",
-"img_index/empires_hauntedcastle",
-"img_index/empires_humblecastle",
-"img_index/empires_kingscastle",
-"img_index/empires_opulentcastle",
-"img_index/empires_smallcastle",
-"img_index/empires_sprawlingcastle",
-"img_index/promos_avanto",
-"img_index/promos_sauna" ];
+"img/cards/promos_walledvillage",
+"img/cards/darkages_knights",  /* ----- mixed piles => see select() ----- */
+"img/cards/empires_castles",
+"img/cards/empires_encampmentplunder",
+"img/cards/empires_patricianemporium",
+"img/cards/empires_settlersbustlingvillage",
+"img/cards/empires_catapultrocks",
+"img/cards/empires_gladiatorfortune",
+"img_index/saunaavanto",
+"img/cards/baseset_adventurer",  /* ---- removed cards in 2n edition ---- */
+"img/cards/baseset_chancellor",
+"img/cards/baseset_feast",
+"img/cards/baseset_spy",
+"img/cards/baseset_thief",
+"img/cards/baseset_woodcutter",
+"img/cards/intrigue_coppersmith",
+"img/cards/intrigue_greathall",
+"img/cards/intrigue_saboteur",
+"img/cards/intrigue_scout",
+"img/cards/intrigue_secretchamber",
+"img/cards/intrigue_tribute" ];
 
+
+   /* return a random card. mixed pile? => further select one in the pile */
    function select() {
-      return items[Math.floor(Math.random() * items.length)];
+      var mixed = null;
+      var item  = items[Math.floor(Math.random() * items.length)];
+      switch (item) {
+         case "img/cards/darkages_knights": mixed = [
+              "img/cards/darkages_dameanna", 
+              "img/cards/darkages_damejosephine",
+              "img/cards/darkages_damemolly",
+              "img/cards/darkages_damenatalie",
+              "img/cards/darkages_damesylvia",
+              "img/cards/darkages_sirbailey",
+              "img/cards/darkages_sirdestry",
+              "img/cards/darkages_sirmartin",
+              "img/cards/darkages_sirmichael",
+              "img/cards/darkages_sirvander" ];
+              break;
+         case "img/cards/empires_castles": mixed = [
+              "img_index/empires_crumblingcastle",
+              "img_index/empires_grandcastle",
+              "img_index/empires_hauntedcastle",
+              "img_index/empires_humblecastle",
+              "img_index/empires_kingscastle",
+              "img_index/empires_opulentcastle",
+              "img_index/empires_smallcastle",
+              "img_index/empires_sprawlingcastle" ];
+              break;
+         case "img/cards/empires_encampmentplunder": mixed = [
+              "img/cards/empires_encampment",
+              "img/cards/empires_plunder" ];
+              break;
+         case "img/cards/empires_patricianemporium": mixed = [
+              "img/cards/empires_patrician",
+              "img/cards/empires_emporium" ];
+              break;
+         case "img/cards/empires_settlersbustlingvillage": mixed = [
+              "img/cards/empires_settlers",
+              "img/cards/empires_bustlingvillage" ];
+              break;
+         case "img/cards/empires_catapultrocks": mixed = [
+              "img/cards/empires_catapult",
+              "img/cards/empires_rocks" ];
+              break;
+         case "img/cards/empires_gladiatorfortune": mixed = [
+              "img/cards/empires_gladiator",
+              "img/cards/empires_fortune" ];
+              break;
+         case "img_index/saunaavanto": mixed = [
+              "img_index/promos_avanto",
+              "img_index/promos_sauna" ];
+              break;
+         default:
+              return item;
+      }
+      return mixed[Math.floor(Math.random() * mixed.length)];
    }
+
 
    var item1;
    var item2;
@@ -484,5 +518,6 @@
    select1();
    select2();
    select3();
+
 </script>
 </html>
