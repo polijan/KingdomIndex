@@ -1,0 +1,60 @@
+#!/bin/sh
+
+# Usage: mkcard [OPTIONS]... IMAGE[.jpg|.png|...] ...
+# create a "card" image for each given image
+# 
+# OPTIONS
+#   -l => landscape card
+#   -b => source image is from the generator
+#         (thus we crop some of the border out)
+# 
+# * requires imagemagick's convert.
+# * "card" image will be called "card_IMAGE.jpg",
+#      (or with -l option: "landscape_IMAGE.jpg")
+#
+
+PREFIX='card_'
+CROP=false
+while true; do
+   case $1 in
+       -l) PREFIX='landscape_'                   ;;
+       -b) CROP=true                             ;;
+       --) shift; break                          ;;
+    -*|'') awk ' /^# Usage:/ { p=1 }
+                 /^# /       { if (p) {print; next;} }
+                             { if (p) exit }
+               ' "$0" | sed s'/# //'
+           case "$1" in -h|--help) exit ;; esac
+           exit 1                                ;;
+        *) break                                 ;;
+   esac
+   shift
+done
+
+[ $PREFIX = 'card_' ] && SIZE='296x473!' \
+                      || SIZE='473x296!'
+
+if $CROP; then
+   CROP='-gravity center +repage -crop'
+   [ $PREFIX = 'card_' ] && CROP="$CROP 1245x1990+0+0" \
+                         || CROP="$CROP 1990x1245+0+0"
+else
+   CROP=''
+fi
+
+
+RET=0
+while [ $# -gt 0 ]; do
+    printf 'card: %s -> ' "$1"
+    [ -f "$1" ]  || { echo 'no such file'; RET=1; shift; continue; }
+
+    EXT=${1##*.}     # strip extension
+    TO=${PREFIX}${1%."$EXT"}.jpg
+    [ -f "$TO" ] && { echo 'card already exist'; RET=1; shift; continue; }
+
+    printf '%s\n' "$TO"
+    convert "$1" $CROP -resize "$SIZE" "$TO" || RET=1
+    shift
+done
+
+exit "$RET"
