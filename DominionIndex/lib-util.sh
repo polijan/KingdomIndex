@@ -44,8 +44,8 @@ cat << EOF
    <meta charset="UTF-8">
    <title>$1 - Dominion Index</title>
    <meta name="viewport" content="width=device-width, initial-scale=1">
-   <link rel="stylesheet" href="/res/w3.css">
-   <link ref="stylesheet" href="/res/style.css">
+   <link rel="stylesheet" href="res/w3.css">
+   <link rel="stylesheet" href="res/style.css">
 </head>
 <body>
    <div class="w3-auto">
