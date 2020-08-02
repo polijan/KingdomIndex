@@ -1,0 +1,15 @@
+The Randomizer comes in three flavors:
+
+AntiquitiesNoRen: Haven't got Renaissance yet? Me neither :( This will choose
+from all sets (no Promos) and Antiquities.
+
+AntiquitiesWithRen: You're luckier than me and have Renaissance! This will
+choose from all published sets (no Promos) and Antiquities.
+
+AntiquitiesConManMethod: This is the same as AntiquitiesWithRen but uses a
+version of f.ds user ConMan's method to randomize the inclusion of Colonies,
+Platinums, Shelters, and Boulder Traps.
+
+The Randomizers are pretty basic. You have the source, so feel free to edit them
+to add features! I'll probably start a thread on f.ds dedicated to explaining
+how it works.
