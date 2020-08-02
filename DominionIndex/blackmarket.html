@@ -18,27 +18,42 @@
       <div class="w3-cell-row vertical-center">
          
          <div class="w3-cell">
-         <img id="card1" alt="Black Market's Choice 1"
-              class="w3-black w3-card-4 w3-round-xlarge w3-border-black w3-margin"
-              style="border-width:16px; border-style:solid"
-              src="img_index/common_back.jpg"
-         />
+            <div>
+               <img id="card1" alt="Black Market's Choice 1"
+                    class="w3-black w3-card-4 w3-round-xlarge w3-border-black w3-margin"
+                    style="border-width:16px; border-style:solid"
+                    src="img_index/common_back.jpg"
+               />
+            </div>
+            <div>
+               <a href="javascript:select1();">change</a>
+            </div>
          </div>
 
          <div class="w3-cell">
-         <img id="card2" alt="Black Market's Choice 2"
-              class="w3-black w3-card-4 w3-round-xlarge w3-border-black w3-margin"
-              style="border-width:16px; border-style:solid"
-              src="img_index/common_back.jpg"
-         />
+            <div>
+               <img id="card2" alt="Black Market's Choice 2"
+                    class="w3-black w3-card-4 w3-round-xlarge w3-border-black w3-margin"
+                    style="border-width:16px; border-style:solid"
+                    src="img_index/common_back.jpg"
+               />
+            </div>
+            <div>
+               <a href="javascript:select2();">change</a>
+            </div>
          </div>
 
          <div class="w3-cell">
-         <img id="card3" alt="Black Market's Choice 3"
-              class="w3-black w3-card-4 w3-round-xlarge w3-border-black w3-margin"
-              style="border-width:16px; border-style:solid"
-              src="img_index/common_back.jpg"
-         />
+            <div>
+               <img id="card3" alt="Black Market's Choice 3"
+                    class="w3-black w3-card-4 w3-round-xlarge w3-border-black w3-margin"
+                    style="border-width:16px; border-style:solid"
+                    src="img_index/common_back.jpg"
+               />
+            </div>
+            <div>
+               <a href="javascript:select3();">change</a>
+            </div>
          </div>
 
       </div>
@@ -441,24 +456,33 @@
 "img_index/promos_avanto",
 "img_index/promos_sauna" ];
 
-
-   var item1=items[Math.floor(Math.random() * items.length)];
-
-   var item2=item1;
-   while (item2 == item1) {
-       item2=items[Math.floor(Math.random() * items.length)];
+   function select() {
+      return items[Math.floor(Math.random() * items.length)];
    }
 
-   var item3=item1;
-   while ((item3 == item1) || (item3 == item2)) {
-       item3=items[Math.floor(Math.random() * items.length)];
+   var item1;
+   var item2;
+   var item3;
+
+   function select1() {
+      item1=select();
+      document.getElementById("card1").src = item1 + ".jpg";
+   }
+   function select2() {
+      item2=item1;
+      while (item2 == item1)
+         item2=select();
+      document.getElementById("card2").src = item2 + ".jpg";
+   }
+   function select3() {
+      item3=item1;
+      while ((item3 == item1) || (item3 == item2))
+         item3=select();
+      document.getElementById("card3").src = item3 + ".jpg";
    }
 
-   item1=item1 + ".jpg";
-   item2=item2 + ".jpg";
-   item3=item3 + ".jpg";
-   document.getElementById("card1").src=item1;
-   document.getElementById("card2").src=item2;
-   document.getElementById("card3").src=item3;
+   select1();
+   select2();
+   select3();
 </script>
 </html>
