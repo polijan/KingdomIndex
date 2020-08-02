@@ -1,0 +1,8 @@
+@font-face {
+   font-family: 'MagicSchool';
+   src: url('/res/MagicSchoolOne.ttf');
+}
+
+h1, h2, h3 {
+   font-family: 'MagicSchool';
+}

@@ -20,7 +20,8 @@ if ! [ -d 'app' ]; then
               ../DominionIndex/*.html                      \
               ../DominionIndex/cgi-bin                     \
               ../DominionIndex/img_index                   \
-              ../DominionIndex/res                      ; do
+              ../DominionIndex/res                         \
+              ../games                                  ; do
          ln --verbose -s "$i"
      done
    )
@@ -41,4 +42,16 @@ fi
 if ! [ -f game-index.html ]; then
    echo 'creating game content pages'
    ../DominionIndex/mkgames.sh
+fi
+
+for i in games/*; do
+   GAME="game-unofficial-$(basename "$i").html"
+   if [ -f "$i/mkgame.sh" ] && ! [ -e "$GAME" ]; then
+      "$i/mkgame.sh" > "$GAME"
+   fi
+done
+
+if ! [ -f dominion.html ]; then
+   echo 'creating landing page'
+   ../DominionIndex/mkdominion.sh > dominion.html
 fi

@@ -11,9 +11,6 @@ SETUP:
    3) set up ~/.dominion-index personal directroy where boards are stored
 
 
-TO GENERATE A BOARD:
-   use mkboard script (pass the cards as parameters)
-
 TO ACCESS THE APP:
    serve the 'app' on a http server
    point the browser at 'dominion.html' on the served URL.
