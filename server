@@ -1,0 +1,96 @@
+#!/bin/sh
+
+# Usage: $0 [-w] [-s SERVER] [PORT]
+# Start a Dominion Index web server (by default, use port is 8888)
+#
+# Web server can be either:
+# python  => python3's http.server (typically installed on linux distro)
+# busybox => busybox's httpd       (installed in termux on an Android tablet)
+# if not specified, it will try python first, then busybox
+#
+# Server will serve locally only to 127.0.0.1 by default,
+# but if -w flag, it will serve to all. In that latter case, URL is also written
+# as a QR code which can be useful to connect a tablet (requires qrencode)
+
+
+PORT=8888
+
+#--- UTILITY FUNCTIONS ---------------------------------------------------------
+
+exists() { command -v "$@" >/dev/null ; }
+
+show()   {
+   printf "Starting web server '%s'.\n" "$1"
+
+   # determine IP address (assumes a 192.168.x.0/24 LAN)
+   IP=''
+   if exists ifconfig; then
+      IP=$(ifconfig | awk '/192.168./ {print $2; exit}')
+   elif exists ip; then
+      IP=$(ip addr  | awk '/192.168./ {print $2; exit}' | cut -d/ -f1)
+   fi
+   [ -z "$IP" ] && IP=127.0.0.1
+
+   # prints URL, possibly as a QR code too
+   URL="http://127.0.0.1:$PORT/dominion.html"
+   printf "Connect from this host to: %s\n" "$URL"
+   if $LOCAL || [ "$IP" = 127.0.0.1 ]; then
+      echo
+   else
+      URL="http://$IP:$PORT/dominion.html"
+      printf 'or from your LAN to      : %s\n' "$URL"
+      exists qrencode && qrencode -t ANSIUTF8 -o - "$URL"
+   fi
+}
+
+#-------------------------------------------------------------------------------
+
+
+cd app || { echo 'cannot cd to app' >&2; exit 1; }
+
+SERVER=''
+LOCAL=true
+while true; do
+   case $1 in
+      -w) LOCAL=false ;;
+      -s) shift
+          case $1 in
+             busybox) SERVER=busybox ;;
+             python*) SERVER=python  ;;
+                   *) echo "server '$1' not supported" >&2
+                      exit 1         ;;
+          esac  ;;
+       *) break ;;
+   esac
+   shift
+done
+
+if [ -z "$SERVER" ]; then
+   if   exists python3; then  SERVER=python
+   elif exists busybox; then  SERVER=busybox
+   else echo 'cannot find a web server' 2>&1; exit 1
+   fi
+fi
+
+[ -n "$1" ] && PORT=$1
+
+
+set --
+case $SERVER in
+    busybox) if busybox --list | grep -q '^httpd$'; then
+                show  'busybox'
+                if $LOCAL
+                   then set -- -p "127.0.0.1:$PORT"
+                   else set -- -p "$PORT"
+                fi
+                busybox httpd -vv -f "$@"
+             else
+                echo "busybox doesn't have httpd applet" 2>&1
+                exit 1
+             fi ;;
+
+     python) show  'python3'
+             $LOCAL && set -- --bind '127.0.0.1'
+             python3 -m http.server --cgi "$@" "$PORT"
+             ;;
+esac
