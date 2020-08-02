@@ -8,9 +8,8 @@ SETUP:
    call the ./install script, this will:
    1) clone the dominion randomizer (KingdomCreator on GitHub) from github
    2) set up the 'app' directory
-   3) set up ~/.dominion-index personal directroy where boards are stored
-
 
 TO ACCESS THE APP:
-   serve the 'app' on a http server
-   point the browser at 'dominion.html' on the served URL.
+
+   1) use the 'server' script (check its usage)
+   2) use the browser (make sure you point to the 'dominion.html' page)
