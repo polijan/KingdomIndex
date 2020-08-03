@@ -1344,48 +1344,25 @@ board_add() {
    [ "$CARD_TYPE" = 'card' ] && kingdom_add
 }
 
-
 # print board
 board_main() {
-cat << EOF
-<!DOCTYPE html>
-<html>
-<head>
-   <meta charset="UTF-8">
-   <title>Board - Dominion Index</title>
-   <meta name="viewport" content="width=device-width, initial-scale=1">
-   <link rel="stylesheet" href="res/w3.css">
-</head>
-<style>
-   @font-face {
-      src: url('res/MagicSchoolOne.ttf');
-      font-family: 'MagicSchool';
-   }
-   h1, h2, h3 { font-family: 'MagicSchool'; }
-</style>
-<body>
-   <div class="w3-auto">
-EOF
+   html_begin 'Board'
 
-      base_main
-      kingdom_main
-      landscape_main
-      mixed_main
-      nonsupply_main
-      starthand_main
-      mat_main
-      token_main
+   base_main
+   kingdom_main
+   landscape_main
+   mixed_main
+   nonsupply_main
+   starthand_main
+   mat_main
+   token_main
 
-      echo   '<hr><div class="w3-container w3-center">'
-      printf 'Dominion Index - board for %d players (created on %s)\n' \
-             "$BOARD_PLAYERS"  "$(date)"
-      echo   '</div>'
+   echo   '<hr><div class="w3-container w3-center">'
+   printf 'Dominion Index - board for %d players (created on %s)\n' \
+          "$BOARD_PLAYERS"  "$(date)"
+   echo   '</div>'
 
-cat << EOF
-   </div>
-</body>
-</html>
-EOF
+   html_end
 }
 
 
