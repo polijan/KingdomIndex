@@ -32,13 +32,13 @@ card_name() {
 card_find() {
    case $1 in
            # for example salvation#monk
-      *#*) local extra_game
-           local extra_name
-           extra_game=${1%#*}
-           extra_name=${1#$extra_game#}
-           card_name "$extra_name"
-           card_find_ "games/$extra_game" ||
-           die "cannot find extra (${extra_game}) image for '$CARD_NAME'"
+      *#*) debug "unofficial card: $1"
+           local game; game=${1%#*}
+           local name; name=${1#$game#}
+           card_name  "$name"
+           card_find_ "games/$game" ||
+           die "cannot find extra (${game}) image for '$CARD_NAME'"
+           card_name "$1" # <--- get fully qualified name with #
            ;;
         *) card_name "$1"
            card_find_ 'img/cards' ||
