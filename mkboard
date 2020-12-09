@@ -1,8 +1,8 @@
 #!/bin/sh
 
 # Usage: $0 [...]
-# generate the board calling DominionIndex/mkboard.sh
+# generate the board calling KingdomIndex/mkboard.sh
 
 # (we 'cd' to "app" so that images can be found)
 cd app || { echo 'cannot cd to "app"' >&2; exit 1; }
-../DominionIndex/mkboard.sh "$@" > board.html
+../KingdomIndex/mkboard.sh "$@" > board.html

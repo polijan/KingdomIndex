@@ -26,8 +26,8 @@
 ### Starting the server
 
 Use the server script (check its usage), for example:
-* `$ ./server` run locally on the default port (8888)
-* `$ ./server -w 1234` run server on the network (-w), run it on port 1234
+* `$ ./server` — run server locally on the default port (8888)
+* `$ ./server -w 1234` — run server on the network (-w), and specify the port 1234
 
 *Notes*:
 * **Do NOT run this on a public network!!!** Kingdom Index server is meant to be run locally on your machine or your private secure LAN.

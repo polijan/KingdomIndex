@@ -17,8 +17,8 @@
 
 
 # this script is meant to be called from the 'app' directory
-. ../DominionIndex/lib-util.sh
-. ../DominionIndex/lib-card.sh
+. ../KingdomIndex/lib-util.sh
+. ../KingdomIndex/lib-card.sh
 
 
 ################################################################################
@@ -634,7 +634,7 @@ mixed_init() {
 
 mixed_check() {
    # if CARD_NAME is from a mixed deck, change card to be the one that
-   # should appear in the kingdom of DominionIndex
+   # should appear in the kingdom of KingdomIndex
    case $CARD_NAME in
                catapult|rocks) card_find 'Catapult_Rocks'           ;;
            encampment|plunder) card_find 'Encampment_Plunder'       ;;

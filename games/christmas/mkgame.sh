@@ -4,8 +4,8 @@
 # create game-*.html page showing the cards in the various Dominion expansions
 # MUST BE CALLED FROM THE APP DIRECTORY
 
-. ../DominionIndex/lib-util.sh
-. ../DominionIndex/lib-card.sh
+. ../KingdomIndex/lib-util.sh
+. ../KingdomIndex/lib-card.sh
 
 msg "generating game: 'A Very Dominion Christmas' fan expansion"
 html_begin 'A Very Dominion Christmas'

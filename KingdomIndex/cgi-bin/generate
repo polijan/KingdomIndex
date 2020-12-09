@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Usage: QUERY_STRING=... $0
-# board generator as a CGI script wrapping DominionIndex/mkboard.sh
+# board generator as a CGI script wrapping KingdomIndex/mkboard.sh
 
 # start of the HTML page
 begin() {
@@ -104,14 +104,14 @@ esac
 
 
 # let's make sure we are in "app" directory (where images can be read from):
-# - when serving with busybox' httpd, pwd is "DominionIndex/cgi-bin" directory,
+# - when serving with busybox' httpd, pwd is "KingdomIndex/cgi-bin" directory,
 # - but with python3's http.server  , pwd is "app" directory
 span 'pwd</span>'
 printf "%s\n" "$PWD"
 case $PWD in
                    */app) ;;
            */app/cgi-bin) span 'cd ..</span>'; cd .. ;;
- */DominionIndex/cgi-bin) span 'cd ../../app</span>'
+  */KingdomIndex/cgi-bin) span 'cd ../../app</span>'
                                 cd ../../app || end 'cannot cd to app'    ;;
                        *) end "cannot understand where I'm running: $PWD" ;;
 esac
@@ -119,9 +119,9 @@ echo
 
 
 # and finally, we can call mkboard.sh
-span "../DominionIndex/mkboard.sh -${PLAYERS} \\"
+span "../KingdomIndex/mkboard.sh -${PLAYERS} \\"
 printf '     "%s" \\\n     2>&1  >board.html</span>\n\n'  "$CARDS"
 # redirect stdout to board.html and stderr to stdout (order matters!) :
-../DominionIndex/mkboard.sh "-$PLAYERS" "$CARDS" 2>&1 >board.html
+../KingdomIndex/mkboard.sh "-$PLAYERS" "$CARDS" 2>&1 >board.html
 
 end

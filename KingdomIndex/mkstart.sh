@@ -45,27 +45,33 @@ cat << EOF
    </h1>
 </div>
 
-<div class="w3-container w3-sand w3-card-4 w3-round-xlarge w3-margin">
-   <h1>Kingdom Randomizer</h1>
-   <p>
-      <a href="index.html" target="_blank">Randomizer</a> -
-      <a href="sets.html"  target="_blank">Featured Games</a> -
-      <a href="rules.html" target="_blank">Rules</a>
-   </p>
+
+<div class="w3-cell-row w3-container">
+   <div class="w3-cell w3-sand w3-card-4 w3-round-xlarge">
+      <h1>Kingdom Index</h1>
+
+      <p class="w3-large">
+         <a href="board.html"              target="_blank">Current Board</a> -
+         <a href="board-generator.html"    target="_blank">Generate New Board</a>
+      </p>
+      <p>tools: <a href="boon.html"        target="_blank">boons</a> -
+                <a href="hex.html"         target="_blank">hexes</a> -
+                <a href="blackmarket.html" target="_blank">black market</a>
+      </p>
+   </div>
+
+   <div class="w3-cell">&nbsp; &nbsp;</div>
+
+   <div class="w3-cell w3-sand w3-card-4 w3-round-xlarge">
+      <h1>Kingdom<br>Randomizer</h1>
+      <p>
+         <a href="index.html" target="_blank">Randomizer</a><br>
+         <a href="sets.html"  target="_blank">Featured Games</a><br>
+         <a href="rules.html" target="_blank">Rules</a>
+      </p>
+   </div>
 </div>
 
-<div class="w3-container w3-sand w3-card-4 w3-round-xlarge w3-margin">
-   <h1>Kingdom Index</h1>
-
-   <p class="w3-large">
-      <a href="board.html"              target="_blank">Current Board</a> -
-      <a href="board-generator.html"    target="_blank">Generate New Board</a>
-   </p>
-   <p>tools: <a href="boon.html"        target="_blank">boons</a> -
-             <a href="hex.html"         target="_blank">hexes</a> -
-             <a href="blackmarket.html" target="_blank">black market</a>
-   </p>
-</div>
 
 <div class="w3-sand w3-card-4 w3-round-xlarge w3-margin">
    <h1 class="w3-padding">Games Contents</h1>

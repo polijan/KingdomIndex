@@ -1,0 +1,18 @@
+#!/bin/sh
+
+# Usage: $0 CARD
+# find card
+
+# 'cd' to "app" so that images can be found
+cd app || { echo 'cannot cd to "app"' >&2; exit 1; }
+
+. ../KingdomIndex/lib-util.sh
+. ../KingdomIndex/lib-card.sh
+
+card_find "$@"
+printf 'NAME: %s\n' "$CARD_NAME"
+printf 'GAME: %s\n' "$CARD_GAME"
+printf 'TYPE: %s\n' "$CARD_TYPE"
+printf 'IMG : %s\n' "$CARD_IMG"
+
+xdg-open "$CARD_IMG" &

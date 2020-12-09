@@ -12,15 +12,15 @@ if ! [ -d 'app' ]; then
    echo 'creating directory "app" and linking files into it'
    mkdir --verbose app
    ( cd app || exit
-     for i in ../KingdomCreator/docs/img                   \
-              ../KingdomCreator/docs/rules                 \
-              ../KingdomCreator/docs/*.css                 \
-              ../KingdomCreator/docs/*.js                  \
-              ../DominionIndex/KingdomCreator_html/*.html  \
-              ../DominionIndex/*.html                      \
-              ../DominionIndex/cgi-bin                     \
-              ../DominionIndex/img_index                   \
-              ../DominionIndex/res                         \
+     for i in ../KingdomCreator/docs/img                  \
+              ../KingdomCreator/docs/rules                \
+              ../KingdomCreator/docs/*.css                \
+              ../KingdomCreator/docs/*.js                 \
+              ../KingdomIndex/KingdomCreator_html/*.html  \
+              ../KingdomIndex/*.html                      \
+              ../KingdomIndex/cgi-bin                     \
+              ../KingdomIndex/img_index                   \
+              ../KingdomIndex/res                         \
               ../games                                  ; do
          ln --verbose -s "$i"
      done
@@ -32,7 +32,7 @@ cd app || exit
 
 if ! [ -f board.html ]; then
    echo 'creating an initial board'
-   ../DominionIndex/mkboard.sh -2 >board.html
+   ../KingdomIndex/mkboard.sh -2 >board.html
 
    # another (simpler) solution would be to just create a dummy board:
    # echo '<html><body><h1>No board has been generated yet.</h1></body></html>' \
@@ -41,7 +41,7 @@ fi
 
 if ! [ -f game-index.html ]; then
    echo 'creating game content pages'
-   ../DominionIndex/mkgames.sh
+   ../KingdomIndex/mkgames.sh
 fi
 
 for i in games/*; do
@@ -53,5 +53,5 @@ done
 
 if ! [ -f start.html ]; then
    echo 'creating the start.html starting page'
-   ../DominionIndex/mkstart.sh > start.html
+   ../KingdomIndex/mkstart.sh > start.html
 fi
