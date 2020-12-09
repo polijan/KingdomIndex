@@ -32,12 +32,12 @@ show()   {
    [ -z "$IP" ] && IP=127.0.0.1
 
    # prints URL, possibly as a QR code too
-   URL="http://127.0.0.1:$PORT/dominion.html"
+   URL="http://127.0.0.1:$PORT/start.html"
    printf "Connect from this host to: %s\n" "$URL"
    if $LOCAL || [ "$IP" = 127.0.0.1 ]; then
       echo
    else
-      URL="http://$IP:$PORT/dominion.html"
+      URL="http://$IP:$PORT/start.html"
       printf 'or from your LAN to      : %s\n' "$URL"
       exists qrencode && qrencode -t ANSIUTF8 -o - "$URL"
    fi

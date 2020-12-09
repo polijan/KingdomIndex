@@ -10,13 +10,14 @@ res/                  web resources from Dominion Index, such as css, fonts, etc
 img_index/            card images for Dominion Index, for images which are not
                       present in KingdomCreator randomizer
 --------------------------------------------------------------------------------
-dominion.html         start page (not called index.html because KingdomCreator
-                                  isn't "happy" if its own index.html is renamed)
 boon.html             page using javascript to print a random boon card
 hex.html              page using javascript to print a random hex  card
 blackmarket.html      page using javascript to print three random kingdoms
 board-generator.html  page with a form to the cgi-bin script creating new boards
 --------------------------------------------------------------------------------
+mkstart.sh            make the start.html page. NOTE: start page is not called
+                      index.html because KingdomCreator isn't "happy" if its own
+                      index.html page is renamed.
 mkboard.sh            given a card, prints a HTML board on output
 mkgames.sh            script that creates the "game-*.html" pages (which shows
                                  the game contents of the Dominion expansions)

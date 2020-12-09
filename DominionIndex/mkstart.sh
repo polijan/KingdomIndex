@@ -27,7 +27,7 @@ cat << EOF
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Dominion Index</title>
+  <title>Kingdom Index</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="res/w3.css">
   <link rel="stylesheet" href="res/style.css">
@@ -41,7 +41,7 @@ cat << EOF
    <img src="res/shield.png" alt="shield">
    <h1 class="w3-display-middle w3-jumbo w3-text-deep-orange"
         style="text-shadow:3px 3px 0 #dde">
-        Dominion<br>Index
+        Kingdom<br>Index
    </h1>
 </div>
 
@@ -55,7 +55,7 @@ cat << EOF
 </div>
 
 <div class="w3-container w3-sand w3-card-4 w3-round-xlarge w3-margin">
-   <h1>Dominion Index</h1>
+   <h1>Kingdom Index</h1>
 
    <p class="w3-large">
       <a href="board.html"              target="_blank">Current Board</a> -

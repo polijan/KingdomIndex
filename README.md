@@ -35,8 +35,8 @@ Use the server script (check its usage), for example:
 
 ### Starting the client
 
-Use a (modern) web browser to connect to the `dominion.html` page on the server.
-For example, if you have launched the server with no option, that would be: http://localhost:8888/dominion.html
+Use a (modern) web browser to connect to the `start.html` page (it's important) on the server.
+For example, if you have launched the server with no option, that would be: http://localhost:8888/start.html
 
 Notes:
 * If you have [qrencode](https://fukuchi.org/works/qrencode/) installed on the server, it will display a QR code with the URL to connect to. This can be convenient to quickly run the client from a tablet (note: displaying the board from a phone doesn't make much sense given the size of the screen)
