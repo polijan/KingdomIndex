@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Usage: $0 [-w] [-s SERVER] [PORT]
-# Start a Dominion Index web server (by default, use port is 8888)
+# Start a Kingdom Index web server (by default, use port is 8888)
 #
 # Web server can be either:
 # python  => python3's http.server (typically installed on linux distro)

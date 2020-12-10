@@ -42,7 +42,7 @@ cat << EOF
 <html>
 <head>
    <meta charset="UTF-8">
-   <title>$1 - Dominion Index</title>
+   <title>$1 - Kingdom Index</title>
    <meta name="viewport" content="width=device-width, initial-scale=1">
    <link rel="stylesheet" href="res/w3.css">
    <link rel="stylesheet" href="res/style.css">

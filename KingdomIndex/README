@@ -1,14 +1,13 @@
-DOMINION INDEX
+KINGDOM INDEX
 
 KingdomCreator_html/  html pages from KingdomCreator randomizer, modified to
                       remove calls to analytics, ads, webfonts, etc...
 
 cgi-bin/              "cgi" server scripts to wrap mkboard.sh into a "web app"
 
-res/                  web resources from Dominion Index, such as css, fonts, etc.
+res/                  web resources from Kingdom Index, such as css, fonts, etc.
 
-img_index/            card images for Dominion Index, for images which are not
-                      present in KingdomCreator randomizer
+img_index/            card images for images not present in KingdomCreator
 --------------------------------------------------------------------------------
 boon.html             page using javascript to print a random boon card
 hex.html              page using javascript to print a random hex  card

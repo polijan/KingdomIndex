@@ -142,7 +142,7 @@ base_check() {
     coloniesplatinums) [ $BASE_PLATINUM = true ] || msg "adding Platinums/Colonies to base cards"
                        BASE_PLATINUM=true; BASE_COLONY=true
                        CARD_TYPE='base' ;;
-    # ^-- this is a "card" name in Dominion Randomizer app
+    # ^-- this is a "card" name in KingdomCreator randomizer app
 
    # Alchemy: add Potions when a card has potion in its cost or it potion is explicitely passed
       potion|potions|transmute|vineyard|apothecary|scryingpool|university|alchemist|familiar|philosophersstone|golem|possession)
@@ -1358,7 +1358,7 @@ board_main() {
    token_main
 
    echo   '<hr><div class="w3-container w3-center">'
-   printf 'Dominion Index - board for %d players (created on %s)\n' \
+   printf 'Kingdom Index - board for %d players (created on %s)\n' \
           "$BOARD_PLAYERS"  "$(date)"
    echo   '</div>'
 
