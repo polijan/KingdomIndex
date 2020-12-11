@@ -41,14 +41,14 @@ end() { html_end; }
 
 game_index() {
    msg 'generating game: Index'
-   html_begin 'Index'
+   html_begin 'Index Cards'
 cat <<EOF
    <div class="w3-center">'
    <div class="w3-display-container">
       <img src="res/shield.png" alt="shield">
          <h1 class="w3-display-middle w3-jumbo w3-text-deep-orange"
              style="text-shadow:3px 3px 0 #dde">
-             Index</h1>
+             Index<br>Cards</h1>
    </div>
    </div>
 EOF
@@ -59,8 +59,8 @@ EOF
    echo '<h1>Alphabetical Indexes (usually Non-Kingdom)</h1>'
    card_row  A  B  C  D  E
    card_row  '' F  G  H  ''
-   echo '<h1>Landscapes (ToDo)</h1>'
-   card_lrow horizontal horizontal horizontal
+   echo '<h1>Landscapes "Cards"</h1>'
+   card_lrow '' x y
    echo '<h1>Dominion Base Cards + Trash + Tokens</h1>'
    card_row  copper silver gold     ''    generictoken
    card_row  estate duchy  province curse trash
