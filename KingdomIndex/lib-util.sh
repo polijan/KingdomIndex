@@ -59,3 +59,29 @@ cat << EOF
 </html>
 EOF
 }
+
+# feature set: title 'comma-separated-cards'
+# create a <h2>title</h2> and a link to the board
+# generator page filled with the given cards.
+html_set() {
+cat << EOF
+<div class="w3-cell-row w3-section">
+   <div class="w3-cell">
+EOF
+      printf '<h2>%s</h2>\n' "$1"
+      shift
+cat << EOF
+   </div>
+
+   <div class="w3-cell w3-right-align">
+      <a class="w3-large w3-btn w3-ripple w3-hover-white w3-hover-text-blue w3-indigo w3-animate-left"
+EOF
+         printf %s      '   href="/board-generator.html?cards='
+         printf %s      "$*" | sed -e 's/ //g' -e 's/#/%23/g' -e 's/,/%2C/g'
+         printf %s      '"'
+cat << EOF
+      > Generate </a>
+   </div>
+</div>
+EOF
+}

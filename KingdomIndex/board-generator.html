@@ -49,5 +49,24 @@
 
 </div>
 </div>
+
+
+<script>
+// check if the URL has parameters indicating value for the cards.
+// and if os, assign that as the value to the text area
+
+function getUrlParameter(name) {
+    //see: https://davidwalsh.name/query-string-javascript
+
+    name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+    var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+    var results = regex.exec(location.search);
+    return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+};
+
+var query = getUrlParameter("cards");
+document.getElementById('cards').value = query;
+
+</script>
 </body>
 </html>
