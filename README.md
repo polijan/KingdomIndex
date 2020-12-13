@@ -1,5 +1,7 @@
 # Kingdom Index
 
+![Kingdom Index Header](https://repository-images.githubusercontent.com/278849792/5445d200-3a62-11eb-87e9-79f317b4d5e5 "Kingdom Index Header")
+
 * [Overview](#overview)
 * [Running the “app”](#running-the-app)
    * [Installation](#installation)
