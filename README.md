@@ -12,7 +12,7 @@
 
 **Kingdom Index** is a board set-up "app" for the deck-building game [Dominion](https://en.wikipedia.org/wiki/Dominion_%28card_game%29) featuring an "index system" designed to test play fan-created cards or community (unofficial) expansions.
 
-[TODO: INSERT AN  IMAGE / GIF / MOVIE  HERE]
+![Kingdom Index](https://raw.githubusercontent.com/notevenodd/KingdomIndex/master/preview.jpg "Kingdom Index")
 
 ## Running the "app"
 
@@ -49,9 +49,6 @@ Notes:
 ##### Q: Should I make my own "*index*" cards to play ? How?
 
 Yes, that *is* the idea! *Index cards* are used as proxies to represent real cards. By watching the board by *Kingdom Index*, you can easily see what card each *index card* represents.
-
-[TODO: INSERT IMAGE HERE]
-
 
 *Index cards* are divided into twelve-cards piles:
 * Each pile has one index, which is either:
