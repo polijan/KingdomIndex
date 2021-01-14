@@ -6,3 +6,11 @@
 h1, h2, h3 {
    font-family: 'MagicSchool';
 }
+
+.vertical-align { display: flex; align-items: center; }
+
+.wood {
+   background-image: url("/res/wood.png");
+   background-repeat: repeat;
+   background-attachment: fixed;
+}

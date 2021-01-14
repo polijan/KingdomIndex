@@ -15,15 +15,15 @@ cat << EOF
    <div class="w3-cell-top">
 
       <div class="w3-display-container w3-center">
-         <img src="res/shield.png" alt="shield">
+         <a href="/start.html"><img src="res/shield.png" alt="shield"></a>
          <h1 class="w3-display-middle w3-jumbo w3-text-deep-orange"
              style="text-shadow:3px 3px 0 #dde">
              Antiquities
          </h1>
       </div>
 
-      <p>
-         <strong>Antiquities</strong> (2018)<br>
+      <div class="w3-card-4 w3-margin w3-padding w3-round-xlarge w3-container w3-section" style="background-color: rgba(255,255,255,.2); backdrop-filter: blur(6px);">
+         <p><strong>Antiquities</strong> (2018)<br>
          A Fan Expansion for Donald X. Vaccarino’s Dominion
          by John “Neirai the Forgiven” den Otter
          Featuring Card and Cover Art by Jan Boruta
@@ -36,7 +36,8 @@ cat << EOF
             <li><a href="#game">Game Contents</a></li>
             <li><a href="#featured">Recommended Sets</a></li>
          </ul>
-      </p>
+         </p>
+      </div>
    </div>
 
    <div class="w3-cell w3-center">
@@ -123,7 +124,7 @@ card_row  militia  smithy  bandit                  antiquities#agora     antiqui
 echo '<h1 id="intrigue" class="w3-center">Antiquities + Intrigue</h1>'
 
 html_set 'City of the Dead' \
-         'antiquities#graveyard,lurker,masquerade antiquities#miner,antiquities#profiteer,wishingwell,conspirator,patrol,antiquities#pyramid,antiquities#mausoleum'
+         'antiquities#graveyard,lurker,masquerade,antiquities#miner,antiquities#profiteer,wishingwell,conspirator,patrol,antiquities#pyramid,antiquities#mausoleum'
 card_row  antiquities#graveyard lurker      masquerade antiquities#miner   antiquities#profiteer
 card_row  wishingwell           conspirator patrol     antiquities#pyramid antiquities#mausoleum
 
@@ -186,7 +187,7 @@ card_row  vineyard herbalist           scryingpool           antiquities#gravewa
 card_row  familiar antiquities#aquifer antiquities#mendicant antiquities#missionhouse possession
 
 
-echo '<h1 class="w3-center">Antiquities + Hinterlands</h1>'
+echo '<h1 id="hinterlands" class="w3-center">Antiquities + Hinterlands</h1>'
 
 html_set 'Histories of the Unmapped World' \
          'antiquities#discovery,foolsgold,antiquities#profiteer,antiquities#stoneworks,cache,cartographer,haggler,antiquities#pyramid,bordervillage,antiquities#dig,antiquities#bouldertrap'

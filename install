@@ -21,6 +21,7 @@ if ! [ -d 'app' ]; then
               ../KingdomIndex/cgi-bin                     \
               ../KingdomIndex/img_index                   \
               ../KingdomIndex/res                         \
+              ../preview.jpg                              \
               ../games                                  ; do
          ln --verbose -s "$i"
      done
@@ -34,7 +35,11 @@ if ! [ -f board.html ]; then
    echo 'creating an initial board'
    ../KingdomIndex/mkboard.sh -2 >board.html
 
-   # another (simpler) solution would be to just create a dummy board:
+   # or we could create the 'First Game' recommended set ...
+   # ../KingdomIndex/mkboard.sh -2 \
+   # 'cellar,moat,merchant,village,workshop,militia,remodel,smithy,market,mine'
+   #
+   # or another (simpler) solution would be to just create a dummy board:
    # echo '<html><body><h1>No board has been generated yet.</h1></body></html>' \
    #      >> board.html
 fi

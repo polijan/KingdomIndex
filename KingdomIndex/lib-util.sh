@@ -47,7 +47,7 @@ cat << EOF
    <link rel="stylesheet" href="res/w3.css">
    <link rel="stylesheet" href="res/style.css">
 </head>
-<body>
+<body class="wood">
    <div class="w3-auto">
 EOF
 }

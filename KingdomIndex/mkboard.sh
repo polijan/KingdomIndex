@@ -525,8 +525,8 @@ kingdom_main() {
 ################################################################################
 
 landscape_init() {
-   LANDSCAPE_A=''
-   LANDSCAPE_B=''
+   LANDSCAPE_x=''
+   LANDSCAPE_y=''
 
    LANDSCAPE_BOONS=false
    LANDSCAPE_HEXES=false
@@ -550,16 +550,16 @@ landscape_check() {
    case $CARD_TYPE in
       card|base) ;;
       landmark|event|project|way)
-         if [ -z "$LANDSCAPE_A" ]; then
-            msg "assign '$CARD_NAME' to landscape card A"
-            LANDSCAPE_A=$CARD_NAME
-         elif [ -z "$LANDSCAPE_B" ]; then
-            msg "assign '$CARD_NAME' to landscape card B"
+         if [ -z "$LANDSCAPE_x" ]; then
+            msg "assign '$CARD_NAME' to landscape card x"
+            LANDSCAPE_x=$CARD_NAME
+         elif [ -z "$LANDSCAPE_y" ]; then
+            msg "assign '$CARD_NAME' to landscape card y"
             LANDSCAPE_B=$CARD_NAME
-            [ "$LANDSCAPE_A" = "$LANDSCAPE_B" ] &&
-               warn "landscape card A and B are duplicates!"
+            [ "$LANDSCAPE_x" = "$LANDSCAPE_y" ] &&
+               warn "landscape card x and y are duplicates!"
          else
-            die "cannot add card '$CARD_NAME' of type '$CARD_TYPE' because both landscape A & B are already assigned"
+            die "cannot add card '$CARD_NAME' of type '$CARD_TYPE' because both landscape x & y are already assigned"
          fi
          ;;
       *) warn "trying to add '$CARD_NAME' of type '$CARD_TYPE' to the supply" ;;
@@ -591,19 +591,19 @@ landscape_main() {
    # events/ways/projects landscape cards + boons
    local h=''
    local b='' ; local l=''
-   local la=''; local lb=''
+   local lx=''; local ly=''
    if $LANDSCAPE_BOONS; then
       b='boon'
       h='Boons'
       l='<a href="boon.html" class="w3-badge" target="_blank" contenteditable="false">Get Boon</a>'
    fi
-   [ -n "$LANDSCAPE_A" ] && la='<span class="w3-badge w3-red">A</span>'
-   [ -n "$LANDSCAPE_B" ] && lb='<span class="w3-badge w3-red">B</span>'
-   [ -n "$la$lb" ]  && h="${h}${h:+ + }Events/Landmarks/Ways/Projects"
+   [ -n "$LANDSCAPE_x" ] && lx='<span class="w3-badge w3-red">x</span>'
+   [ -n "$LANDSCAPE_y" ] && ly='<span class="w3-badge w3-red">y</span>'
+   [ -n "$lx$ly" ]  && h="${h}${h:+ + }Events/Landmarks/Ways/Projects"
    if [ -n "$h" ]; then
       landscape_header "$h"
-      card_lrow_labels "$l" "$la"          "$lb"
-      card_lrow        "$b" "$LANDSCAPE_A" "$LANDSCAPE_B"
+      card_lrow_labels "$l" "$lx"          "$ly"
+      card_lrow        "$b" "$LANDSCAPE_x" "$LANDSCAPE_y"
    fi
 
    # hexes
@@ -1358,7 +1358,7 @@ board_main() {
    token_main
 
    echo   '<hr><div class="w3-container w3-center">'
-   printf 'Kingdom Index - board for %d players (created on %s)\n' \
+   printf '<a href="/start.html">Kingdom Index</a> - board for %d players (created on %s)\n' \
           "$BOARD_PLAYERS"  "$(date)"
    echo   '</div>'
 

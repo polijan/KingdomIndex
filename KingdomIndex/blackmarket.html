@@ -9,8 +9,20 @@
 <style>
    html, body { height: 100%; }
    .vertical-align { display: flex; align-items: center; }
+
+   .bg {
+      background-color:#556;
+      background-image: linear-gradient(30deg, #445 12%, transparent 12.5%, transparent 87%, #445 87.5%, #445),
+      linear-gradient(150deg, #445 12%, transparent 12.5%, transparent 87%, #445 87.5%, #445),
+      linear-gradient(30deg, #445 12%, transparent 12.5%, transparent 87%, #445 87.5%, #445),
+      linear-gradient(150deg, #445 12%, transparent 12.5%, transparent 87%, #445 87.5%, #445),
+      linear-gradient(60deg, #99a 25%, transparent 25.5%, transparent 75%, #99a 75%, #99a),
+      linear-gradient(60deg, #99a 25%, transparent 25.5%, transparent 75%, #99a 75%, #99a);
+      background-size:80px 140px;
+      background-position: 0 0, 0 0, 40px 70px, 40px 70px, 0 0, 40px 70px;
+   }
 </style>
-<body class="w3-grey">
+<body class="bg">
 
    <div class="vertical-align" style="height:100%">
    <div class="w3-auto w3-center">
@@ -20,13 +32,15 @@
          <div class="w3-cell">
             <div>
                <img id="card1" alt="Black Market's Choice 1"
-                    class="w3-black w3-card-4 w3-round-xlarge w3-border-black w3-margin w3-animate-zoom"
+                    class="w3-black w3-card-4 w3-round-xlarge w3-border-black w3-margin w3-animate-left"
                     style="border-width:16px; border-style:solid"
                     src="img_index/common_back.jpg"
                />
             </div>
             <div>
-               <a href="javascript:select1();">change</a>
+               <a href="javascript:select1();"
+                  class="w3-large w3-btn w3-ripple w3-hover-white w3-hover-text-blue w3-indigo w3-animate-zoom"
+               >Change</a>
             </div>
          </div>
 
@@ -39,20 +53,24 @@
                />
             </div>
             <div>
-               <a href="javascript:select2();">change</a>
+               <a href="javascript:select2();"
+                  class="w3-large w3-btn w3-ripple w3-hover-white w3-hover-text-blue w3-indigo w3-animate-zoom"
+               >Change</a>
             </div>
          </div>
 
          <div class="w3-cell">
             <div>
                <img id="card3" alt="Black Market's Choice 3"
-                    class="w3-black w3-card-4 w3-round-xlarge w3-border-black w3-margin w3-animate-zoom"
+                    class="w3-black w3-card-4 w3-round-xlarge w3-border-black w3-margin w3-animate-right"
                     style="border-width:16px; border-style:solid"
                     src="img_index/common_back.jpg"
                />
             </div>
             <div>
-               <a href="javascript:select3();">change</a>
+               <a href="javascript:select3();"
+                  class="w3-large w3-btn w3-ripple w3-hover-white w3-hover-text-blue w3-indigo w3-animate-zoom"
+               >Change</a>
             </div>
          </div>
 
