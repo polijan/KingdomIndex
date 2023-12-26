@@ -14,15 +14,15 @@
 
 **Kingdom Index** is a board set-up "app" for the deck-building game [Dominion](https://en.wikipedia.org/wiki/Dominion_%28card_game%29) featuring an "index system" designed to test play fan-created cards or community (unofficial) expansions.
 
-![Kingdom Index](https://raw.githubusercontent.com/notevenodd/KingdomIndex/master/preview.jpg "Kingdom Index")
+![Kingdom Index](https://raw.githubusercontent.com/polijan/KingdomIndex/master/preview.jpg "Kingdom Index")
 
 ## Running the "app"
 
 ### Installation
 
-1. clone the repository: `git clone https://github.com/notevenodd/KingdomIndex.git`
+1. clone the repository: `git clone https://github.com/polijan/KingdomIndex.git`
 2. call the `./install` script, this will:
-   1. clone blakevanlan's [KingdomCreator](https://github.com/blakevanlan/KingdomCreator "KingdomCreator") project. **Kingdom Creator** is a randomizer for Dominion cards and we use it to get the graphics of most Dominion cards (and it's nice being able to use the randomizer also).
+   1. git clone a [fork/clone](https://github.com/polijan/KingdomCreator) of blakevanlan's [KingdomCreator](https://github.com/blakevanlan/KingdomCreator "KingdomCreator") project. **Kingdom Creator** is a randomizer for Dominion cards and we use it to get the graphics of most Dominion cards (and it's nice being able to use the randomizer also).
    2. set up the `app` directory.
 
 ### Starting the server

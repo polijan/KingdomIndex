@@ -5,7 +5,12 @@
 
 if ! [ -d "KingdomCreator" ]; then
    echo 'cloning KingdomCreator randomizer from github (requires internet)'
-   git clone https://github.com/blakevanlan/KingdomCreator.git
+   # original: https://github.com/blakevanlan/KingdomCreator.git
+   git clone https://github.com/polijan/KingdomCreator.git || exit
+   # checkout the right version:
+   cd KingdomCreator || exit
+   git checkout "$(git rev-list -n 1 --before="2021-01-15" master)" || exit
+   cd ..
 fi
 
 if ! [ -d 'app' ]; then
@@ -23,7 +28,7 @@ if ! [ -d 'app' ]; then
               ../KingdomIndex/res                         \
               ../preview.jpg                              \
               ../games                                  ; do
-         ln --verbose -s "$i"
+         ln --verbose -s "$i"   # (invoking ln with no destination is a GNU-ism)
      done
    )
 fi
@@ -34,12 +39,7 @@ cd app || exit
 if ! [ -f board.html ]; then
    echo 'creating an initial board'
    ../KingdomIndex/mkboard.sh -2 >board.html
-
-   # or we could create the 'First Game' recommended set ...
-   # ../KingdomIndex/mkboard.sh -2 \
-   # 'cellar,moat,merchant,village,workshop,militia,remodel,smithy,market,mine'
-   #
-   # or another (simpler) solution would be to just create a dummy board:
+   # another solution would be to just create a dummy board:
    # echo '<html><body><h1>No board has been generated yet.</h1></body></html>' \
    #      >> board.html
 fi
