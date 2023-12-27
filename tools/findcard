@@ -15,4 +15,5 @@ printf 'GAME: %s\n' "$CARD_GAME"
 printf 'TYPE: %s\n' "$CARD_TYPE"
 printf 'IMG : %s\n' "$CARD_IMG"
 
-xdg-open "$CARD_IMG" &
+[ -f "$CARD_IMG" ] || exit
+xdg-open "$CARD_IMG" 2>/dev/null &
