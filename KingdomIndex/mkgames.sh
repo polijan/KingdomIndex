@@ -110,18 +110,23 @@ game_intrigue() {
 }
 
 game_seaside() {
-   begin 'Seaside' seaside.jpg
+   begin 'Seaside' seaside.jpg seaside2.jpg
    echo '<h1>Kingdom Cards</h1>'
-   card_row  embargo    haven          lighthouse    nativevillage    pearldiver
-   card_row  ambassador fishingvillage lookout       smugglers        warehouse
-   card_row  caravan    cutpurse       island        navigator        pirateship
-   card_row  salvager   seahag         treasuremap   bazaar           explorer
-   card_row  ''         ghostship      merchantship  outpost          ''
-   card_row  ''         tactician      treasury      wharf            ''
+   echo '    <h2>Common</h2>'
+   card_row  haven      lighthouse   nativevillage  fishingvillage   lookout
+   card_row  smugglers  warehouse    caravan        cutpurse         island
+   card_row  salvager   treasuremap  bazaar         merchantship     outpost
+   card_row  ''         tactician    treasury       wharf            ''
+   echo '    <h2>Second Edition</h2>'
+   card_row  astrolabe  monkey       seachart       blockade         sailor
+   card_row  tidepools  corsair      pirate         seawitch         ''
+   echo '    <h2>First Edition (removed cards)</h2>'
+   card_row  embargo    pearldiver   ambassador     navigator        pirateship
+   card_row  ''         seahag       explorer       ghostship        ''
    echo '<h1>Mats</h1>'
-   card_row  ''         islandmat      pirateshipmat nativevillagemat ''
-   echo '<h1>Tokens</h1>'
-   card_row  cointoken  ''             ''            ''               embargotoken
+   card_row  ''         islandmat    pirateshipmat  nativevillagemat ''
+   echo '<h1>Tokens (1st edition)</h1>'
+   card_row  cointoken  ''           ''             ''               embargotoken
    end
 }
 
@@ -137,18 +142,24 @@ game_alchemy() {
 }
 
 game_prosperity() {
-   begin 'Prosperity' prosperity.jpg
+   begin 'Prosperity' prosperity.jpg prosperity2.jpg
    echo '<h1>Base Cards</h1>'
-   card_row  platinum      colony    ''              ''          ''
+   card_row  platinum      colony       ''          ''          ''
    echo '<h1>Kingdom Cards</h1>'
-   card_row  loan          traderoute watchtower     bishop      monument
-   card_row  quarry        talisman   workersvillage city        contraband
-   card_row  countinghouse mint       mountebank     rabble      royalseal
-   card_row  vault         venture    goons          grandmarket hoard
-   card_row  bank          expand     forge          kingscourt  peddler
-   end
+   echo '    <h2>Common</h2>'
+   card_row  watchtower    bishop       monument    quarry      workersvillage
+   card_row  city          mint         rabble      vault       grandmarket
+   card_row  ''            hoard        bank        expand      ''
+   card_row  ''            forge        kingscourt  peddler     ''
+   echo '    <h2>Second Edition</h2>'
+   card_row  anvil         clerk        investment  tiara       charlatan
+   card_row  collection    crystalball  magnate     warchest    ''
+   echo '    <h2>First Edition (removed cards)</h2>'
+   card_row  loan          traderoute   talisman    contraband  countinghouse
+   card_row  mountebank    royalseal    venture     goons       ''
    echo '<h1>Mats & Tokens</h1>'
-   card_row  traderoutemat victorymat ''             cointoken   vptoken
+   card_row  traderoutemat  victorymat  ''          cointoken   vptoken
+   end
 }
 
 game_cornucopia() {
@@ -163,14 +174,29 @@ game_cornucopia() {
 }
 
 game_hinterlands() {
-   begin 'Hinterlands' hinterlands.jpg
+#   begin 'Hinterlands' hinterlands.jpg
+#   echo '<h1>Kingdom Cards</h1>'
+#   card_row  crossroads   duchess  foolsgold     develop         oasis
+#   card_row  oracle       scheme   tunnel        jackofalltrades noblebrigand
+#   card_row  nomadcamp    silkroad spicemerchant trader          cache
+#   card_row  cartographer embassy  haggler       illgottengains  highway
+#   card_row  ''           inn      mandarin      margrave        ''
+#   card_row  ''           stables  bordervillage farmland        ''
+#   end
+
+   begin 'Hinterlands' hinterlands.jpg hinterlands2.jpg
    echo '<h1>Kingdom Cards</h1>'
-   card_row  crossroads   duchess  foolsgold     develop         oasis
-   card_row  oracle       scheme   tunnel        jackofalltrades noblebrigand
-   card_row  nomadcamp    silkroad spicemerchant trader          cache
-   card_row  cartographer embassy  haggler       illgottengains  highway
-   card_row  ''           inn      mandarin      margrave        ''
-   card_row  ''           stables  bordervillage farmland        ''
+   echo '    <h2>Common</h2>'
+   card_row  crossroads foolsgold       develop        oasis     scheme
+   card_row  tunnel     jackofalltrades spicemerchant  trader    cartographer
+   card_row  haggler    highway         inn            margrave  stables
+   card_row  ''         bordervillage   ''             farmland  ''
+   echo '    <h2>Second Edition</h2>'
+   card_row  guarddog   nomads          trail          weaver    berserker
+   card_row  cauldron   souk            wheelwright    witchshut ''
+   echo '    <h2>First Edition (removed cards)</h2>'
+   card_row  duchess    oracle          noblebrigand   nomadcamp silkroad
+   card_row  cache      embassy         illgottengains mandarin  ''
    end
 }
 

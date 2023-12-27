@@ -60,10 +60,10 @@ card_find_() {
    while true; do
       case $(printf '%s\n' "$CARD_IMG" | wc -l) in
          1) break    ;;
-         2) # cards common to version 1&2 of dominion(baseset)
-            # or intrique may be returned twice. In that case,
-            # return the card of the 2nd version.
-            CARD_IMG=$(printf %s "$CARD_IMG" | grep '^intrigue2\|^baseset2')
+         2) # Cards from an expansion (or the baseset) with a 2nd edition may be
+            # returned twice. In that case, we decide to return the card from
+            # the 2nd edition.
+            CARD_IMG=$(printf %s "$CARD_IMG" | grep '2')
             [ "$(printf '%s\n' "$CARD_IMG" | wc -l)" -eq 1 ] \
             ||  die "found two images for '$CARD_NAME'" ;;
          *) die "found several images for '$CARD_NAME'" ;;

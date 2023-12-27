@@ -9,7 +9,8 @@ if ! [ -d "KingdomCreator" ]; then
    git clone https://github.com/polijan/KingdomCreator.git || exit
    # checkout the right version:
    cd KingdomCreator || exit
-   git checkout "$(git rev-list -n 1 --before="2021-01-15" master)" || exit
+   git checkout 1b21d6d485e6f40dd269a98eb2ce529392d93ff4
+#   git checkout "$(git rev-list -n 1 --before="2023-12-26" master)" || exit
    cd ..
 fi
 
