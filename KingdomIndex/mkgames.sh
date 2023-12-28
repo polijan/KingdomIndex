@@ -70,8 +70,8 @@ EOF
 game_dominion() {
    begin 'Dominion' baseset.jpg baseset2.jpg
    echo '<h1>Base Cards + Trash</h1>'
-   card_row copper      silver     gold        ''          trash
-   card_row estate      duchy      province    ''          curse
+   card_row  copper     silver     gold        ''          trash
+   card_row  estate     duchy      province    ''          curse
    echo '<h1>Kingdom Cards</h1>'
    echo '    <h2>Common</h2>'
    card_row  cellar     chapel     moat        village     workshop
@@ -174,16 +174,6 @@ game_cornucopia() {
 }
 
 game_hinterlands() {
-#   begin 'Hinterlands' hinterlands.jpg
-#   echo '<h1>Kingdom Cards</h1>'
-#   card_row  crossroads   duchess  foolsgold     develop         oasis
-#   card_row  oracle       scheme   tunnel        jackofalltrades noblebrigand
-#   card_row  nomadcamp    silkroad spicemerchant trader          cache
-#   card_row  cartographer embassy  haggler       illgottengains  highway
-#   card_row  ''           inn      mandarin      margrave        ''
-#   card_row  ''           stables  bordervillage farmland        ''
-#   end
-
    begin 'Hinterlands' hinterlands.jpg hinterlands2.jpg
    echo '<h1>Kingdom Cards</h1>'
    echo '    <h2>Common</h2>'
@@ -387,6 +377,73 @@ game_menagerie() {
    end
 }
 
+game_allies() {
+   begin 'Allies' allies.jpg
+   echo '<h1>Kingdom Cards</h1>'
+   card_row  bauble       sycophant    townsfolk      augurs       clashes
+   card_row  forts        merchantcamp importer       odysseys     sentinel
+   card_row  underling    wizards      broker         carpenter    courier
+   card_row  innkeeper    royalgalley  town           barbarian    capitalcity
+   card_row  contract     emissary     galleria       guildmaster  highwayman
+   card_row  ''           hunter       modify         skirmisher   ''
+   card_row  ''           specialist   swap           marquis      ''
+   echo '<h1>Split Piles</h1>'
+   echo '<h2>Augurs</h2>'
+   card_row  herbgatherer acolyte      sorceress      sibyl        ''
+   echo '<h2>Clashes</h2>'
+   card_row  battleplan   archer       warlord        territory    ''
+   echo '<h2>Forts</h2>'
+   card_row  tent         garrison     hillfort       stronghold   ''
+   echo '<h2>Odysseys</h2>'
+   card_row  oldmap       voyage       sunkentreasure distantshore ''
+   echo '<h2>Townsfolk</h2>'
+   card_row  towncrier    blacksmith   miller         elder        ''
+   echo '<h2>Wizards</h2>'
+   card_row  student      conjurer     sorcerer       lich         ''
+   echo '<h1>Allies</h1>'
+   card_lrow architectsguild      bandofnomads      cavedwellers
+   card_lrow circleofwitches      citystate         coastalhaven
+   card_lrow craftersguild        desertguides      familyofinventors
+   card_lrow fellowshipofscribes  forestdwellers    gangofpickpockets
+   card_lrow islandfolk           leagueofbankers   leagueofshopkeepers
+   card_lrow markettowns          mountainfolk      orderofastrologers
+   card_lrow orderofmasons        peacefulcult      plateaushepherds
+   card_lrow trapperslodge        woodworkersguild  ''
+   echo '<h1>Mats & Tokens</h1>'
+   card_lrow favorsmat '' cointoken
+   end
+}
+
+game_plunder() {
+   begin 'Plunder' plunder.jpg
+   echo '<h1>Kingdom Cards</h1>'
+   card_row  cage           grotto       jewelledegg    search        shaman
+   card_row  secludedshrine siren        stowaway       taskmaster    abundance
+   card_row  cabinboy       crucible     flagship       fortunehunter gondola
+   card_row  harborvillage  landingparty mapmaker       maroon        rope
+   card_row  swampshacks    tools        buriedtreasure crew          cutthroat
+   card_row  enlarge        figurine     firstmate      frigate       longship
+   card_row  miningroad     pendant      pickaxe        pilgrim       quartermaster
+   card_row  silvermine     trickster    wealthyvillage sackofloot    kingscache
+   echo '<h1>Non-Supply Cards : Loots</h1>'
+   card_row  amphora        doubloons    endlesschalice figurehead    hammer
+   card_row  insignia       jewels       orb            prizegoat     puzzlebox
+   card_row  sextant        shield       spellscroll    staff         sword
+   echo '<h1>Events</h1>'
+   card_lrow bury       avoid      deliver
+   card_lrow peril      rush       foray
+   card_lrow launch     mirror     prepare
+   card_lrow scrounge   journey    maelstrom
+   card_lrow looting    invasion   prosper
+   echo '<h1>Traits</h1>'
+   card_lrow cheap      cursed     fated
+   card_lrow fawning    friendly   hasty
+   card_lrow inherited  inspiring  nearby
+   card_lrow patient    pious      reckless
+   card_lrow rich       shy        tireless
+   end
+}
+
 game_promo() {
    msg 'generating game: Promo'
    html_begin 'Promo Cards'
@@ -437,34 +494,41 @@ game_all() {
    card_row  lurker      diplomat      mill        secretpassage courtier
    card_row  patrol      replace       ''          secretchamber greathall
    card_row  ''          coppersmith   scout       saboteur      tribute
-   echo '    <h2>Seaside</h2>'
-   card_row  embargo    haven          lighthouse    nativevillage    pearldiver
-   card_row  ambassador fishingvillage lookout       smugglers        warehouse
-   card_row  caravan    cutpurse       island        navigator        pirateship
-   card_row  salvager   seahag         treasuremap   bazaar           explorer
-   card_row  ''         ghostship      merchantship  outpost          ''
-   card_row  ''         tactician      treasury      wharf            ''
+   echo '    <h2>Seaside (1 & 2)</h2>'
+   card_row  haven      lighthouse   nativevillage  fishingvillage   lookout
+   card_row  smugglers  warehouse    caravan        cutpurse         island
+   card_row  salvager   treasuremap  bazaar         merchantship     outpost
+   card_row  ''         tactician    treasury       wharf            ''
+   card_row  astrolabe  monkey       seachart       blockade         sailor
+   card_row  tidepools  corsair      pirate         seawitch         ''
+   card_row  embargo    pearldiver   ambassador     navigator        pirateship
+   card_row  ''         seahag       explorer       ghostship        ''
    echo '    <h2>Alchemy</h2>'
    card_row  transmute  vineyard   herbalist apothecary        scryingpool
    card_row  university alchemist  familiar  philosophersstone golem
    card_row  apprentice possession ''        ''                ''
-   echo '    <h2>Prosperity</h2>'
-   card_row  loan          traderoute watchtower     bishop      monument
-   card_row  quarry        talisman   workersvillage city        contraband
-   card_row  countinghouse mint       mountebank     rabble      royalseal
-   card_row  vault         venture    goons          grandmarket hoard
-   card_row  bank          expand     forge          kingscourt  peddler
+   echo '    <h2>Prosperity (1 & 2)</h2>'
+   card_row  watchtower    bishop       monument    quarry      workersvillage
+   card_row  city          mint         rabble      vault       grandmarket
+   card_row  ''            hoard        bank        expand      ''
+   card_row  ''            forge        kingscourt  peddler     ''
+   card_row  anvil         clerk        investment  tiara       charlatan
+   card_row  collection    crystalball  magnate     warchest    ''
+   card_row  loan          traderoute   talisman    contraband  countinghouse
+   card_row  mountebank    royalseal    venture     goons       ''
    echo '    <h2>Cornucopia</h2>'
    card_row  hamlet    fortuneteller menagerie   farmingvillage horsetraders
    card_row  remake    tournament    youngwitch  harvest        hornofplenty
    card_row  ''        huntingparty  jester      fairgrounds    ''
-   echo '    <h2>Hinterlands</h2>'
-   card_row  crossroads    duchess  foolsgold     develop         oasis
-   card_row  oracle        scheme   tunnel        jackofalltrades noblebrigand
-   card_row  nomadcamp     silkroad spicemerchant trader          cache
-   card_row  cartographer  embassy  haggler       illgottengains  highway
-   card_row  ''            inn      mandarin      margrave        ''
-   card_row  ''            stables  bordervillage farmland        ''
+   echo '    <h2>Hinterlands (1 & 2)</h2>'
+   card_row  crossroads foolsgold       develop        oasis     scheme
+   card_row  tunnel     jackofalltrades spicemerchant  trader    cartographer
+   card_row  haggler    highway         inn            margrave  stables
+   card_row  ''         bordervillage   ''             farmland  ''
+   card_row  guarddog   nomads          trail          weaver    berserker
+   card_row  cauldron   souk            wheelwright    witchshut ''
+   card_row  duchess    oracle          noblebrigand   nomadcamp silkroad
+   card_row  cache      embassy         illgottengains mandarin  ''
    echo '    <h2>Dark Ages</h2>'
    card_row  poorhouse     beggar        squire       vagrant    forager
    card_row  hermit        marketsquare  sage         storeroom  urchin
@@ -511,7 +575,26 @@ game_all() {
    card_row  barge        coven     displace     falconer   gatekeeper
    card_row  huntinglodge kiln      livery       mastermind paddock
    card_row  sanctuary    fisherman destrier     wayfarer   animalfair
-
+   echo '    <h2>Allies</h2>'
+   card_row  bauble       sycophant    townsfolk      augurs       clashes
+   card_row  forts        merchantcamp importer       odysseys     sentinel
+   card_row  underling    wizards      broker         carpenter    courier
+   card_row  innkeeper    royalgalley  town           barbarian    capitalcity
+   card_row  contract     emissary     galleria       guildmaster  highwayman
+   card_row  ''           hunter       modify         skirmisher   ''
+   card_row  ''           specialist   swap           marquis      ''
+   echo '    <h2>Plunder</h2>'
+   card_row  cage           grotto       jewelledegg    search        shaman
+   card_row  secludedshrine siren        stowaway       taskmaster    abundance
+   card_row  cabinboy       crucible     flagship       fortunehunter gondola
+   card_row  harborvillage  landingparty mapmaker       maroon        rope
+   card_row  swampshacks    tools        buriedtreasure crew          cutthroat
+   card_row  enlarge        figurine     firstmate      frigate       longship
+   card_row  miningroad     pendant      pickaxe        pilgrim       quartermaster
+   card_row  silvermine     trickster    wealthyvillage sackofloot    kingscache
+   echo '    <h2>Promotional Cards</h2>'
+   card_row  blackmarket   church   dismantle envoy   saunaavanto
+   card_row  walledvillage governor stash     captain prince
    echo '<h1>Mixed/Split Kingdom Piles</h1>'
    echo '<h2>Knights</h2>'
    card_row  dameanna      damejosephine damemolly    damenatalie     damesylvia
@@ -519,6 +602,18 @@ game_all() {
    echo '<h2>Castles</h2>'
    card_row  humblecastle  crumblingcastle smallcastle hauntedcastle ''
    card_row  opulentcastle sprawlingcastle grandcastle kingscastle   ''
+   echo '<h2>Augurs</h2>'
+   card_row  herbgatherer acolyte      sorceress      sibyl        ''
+   echo '<h2>Clashes</h2>'
+   card_row  battleplan   archer       warlord        territory    ''
+   echo '<h2>Forts</h2>'
+   card_row  tent         garrison     hillfort       stronghold   ''
+   echo '<h2>Odysseys</h2>'
+   card_row  oldmap       voyage       sunkentreasure distantshore ''
+   echo '<h2>Townsfolk</h2>'
+   card_row  towncrier    blacksmith   miller         elder        ''
+   echo '<h2>Wizards</h2>'
+   card_row  student      conjurer     sorcerer       lich         ''
    echo '<h2>Half/half splits</h2>'
    card_row  encampment    plunder         '' patrician emporium
    card_row  settlers      bustlingvillage '' catapult  rocks
@@ -539,8 +634,12 @@ game_all() {
    echo '    <h2>Heirlooms + Shelters (starting hand)</h2>'
    card_row  hauntedmirror magiclamp        goat        pasture    pouch
    card_row  cursedgold    luckycoin        hovel       necropolis overgrownestate
+   echo '    <h2>Loots</h2>'
+   card_row  amphora        doubloons    endlesschalice figurehead    hammer
+   card_row  insignia       jewels       orb            prizegoat     puzzlebox
+   card_row  sextant        shield       spellscroll    staff         sword
 
-   echo '<h1>Landscape Cards (Events/Landmarks/Projects/Ways)</h1>'
+   echo '<h1>Regular Landscape Cards: Events/Landmarks/Projects/Ways</h1>'
    echo '<h2>Events</h2>'
    card_lrow triumph           annex          donate
    card_lrow advance           alms           borrow
@@ -560,6 +659,11 @@ game_all() {
    card_lrow lostarts          training       inheritance
    card_lrow reap              enclave        pathfinding
    card_lrow alliance          populate       dominate
+   card_lrow bury       avoid      deliver
+   card_lrow peril      rush       foray
+   card_lrow launch     mirror     prepare
+   card_lrow scrounge   journey    maelstrom
+   card_lrow looting    invasion   prosper
    echo '<h2>Landmarks</h2>'
    card_lrow aqueduct          arena          banditfort
    card_lrow basilica          baths          battlefield
@@ -585,7 +689,7 @@ game_all() {
    card_lrow wayoftheseal      wayofthesheep  wayofthesquirrel
    card_lrow wayoftheturtle    wayoftheworm   ''
 
-   echo '<h1>Landscape Cards "Face-Down" Decks</h1>'
+   echo '<h1>Landscape Cards: "Face-Down" Decks</h1>'
    echo '<h2>Boons</h2>'
    card_lrow theearthsgift   thefieldsgift  theflamesgift
    card_lrow theforestsgift  themoonsgift   themountainsgift
@@ -597,7 +701,22 @@ game_all() {
    card_lrow haunting        locusts        misery
    card_lrow plague          poverty        war
 
-   echo '<h1>Other Landscape Cards: Artifacts & States</h1>'
+   echo '<h1>Other Landscape Cards</h1>'
+   echo '<h2>Allies</h2>'
+   card_lrow architectsguild      bandofnomads      cavedwellers
+   card_lrow circleofwitches      citystate         coastalhaven
+   card_lrow craftersguild        desertguides      familyofinventors
+   card_lrow fellowshipofscribes  forestdwellers    gangofpickpockets
+   card_lrow islandfolk           leagueofbankers   leagueofshopkeepers
+   card_lrow markettowns          mountainfolk      orderofastrologers
+   card_lrow orderofmasons        peacefulcult      plateaushepherds
+   card_lrow trapperslodge        woodworkersguild  ''
+   echo '<h2>Traits</h2>'
+   card_lrow cheap      cursed     fated
+   card_lrow fawning    friendly   hasty
+   card_lrow inherited  inspiring  nearby
+   card_lrow patient    pious      reckless
+   card_lrow rich       shy        tireless
    echo '<h2>Unique Artifacts/Unary states</h2>'
    card_lrow flag    horn          key
    card_lrow lantern treasurechest lostinthewoods
@@ -608,6 +727,7 @@ game_all() {
    card_row  trash          ''             islandmat      pirateshipmat  nativevillagemat
    card_lrow traderoutemat  victorymat     tavernmat
    card_lrow coffers        villagers      exilemat
+   card_lrow favorsmat      ''             ''
 
    echo '<h1>Tokens</h1>'
    card_row  cointoken      vptoken        debttoken      embargotoken   cubetoken
@@ -636,5 +756,7 @@ game_empires     > game-empires.html
 game_nocturne    > game-nocturne.html
 game_renaissance > game-renaissance.html
 game_menagerie   > game-menagerie.html
+game_allies      > game-allies.html
+game_plunder     > game-plunder.html
 game_promo       > game-promo.html
 game_all         > game-all.html

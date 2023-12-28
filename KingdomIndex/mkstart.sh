@@ -100,7 +100,9 @@ cat << EOF
             <a href="game-empires.html"     target="_blank">Empires</a> -
             <a href="game-nocturne.html"    target="_blank">Nocturne</a> -
             <a href="game-renaissance.html" target="_blank">Renaissance</a> -
-            <a href="game-menagerie.html"   target="_blank">Menagerie</a>
+            <a href="game-menagerie.html"   target="_blank">Menagerie</a> -
+            <a href="game-allies.html"      target="_blank">Allies</a> -
+            <a href="game-plunder.html"     target="_blank">Plunder</a>
             <br><br>
             <a href="game-promo.html"       target="_blank">Promo Cards</a> -
             <a href="game-all.html"         target="_blank">ALL GAMES</a>
