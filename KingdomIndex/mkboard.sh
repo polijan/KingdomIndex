@@ -469,6 +469,11 @@ kingdom_label() {
             label="${rat1}.1-10, ${rat2}.1-10"
             return ;;
 
+      # 4/4/4/4 split have 16 cards: 1-4 and 7-10 on the normal index and another one
+      augurs|clashes|forts|odysseys|townsfolk|wizards)
+          label="${INDEX}.1-4, 7-10, <span class=\"w3-badge w3-blue\"> &nbsp; </span>.1-4, 7-10"
+          return ;;
+
       # the usual case => 10 cards
          *) n=10 ;;
    esac
@@ -512,8 +517,8 @@ kingdom_main() {
 # MODULE "LANDSCAPE" : Landscape "cards"
 # events/landmarks/projects/ways  boons/hexes/states/artifacts
 
-# events/landmarks/projects/ways
-# [x] in Adventures, Empires, Renaissance, Menagerie, Promo
+# events/landmarks/projects/ways/traits
+# [x] in Adventures, Empires, Renaissance, Menagerie, Promo, Plunder
 #     (max 2 unique of those are in play)
 #
 # others:
@@ -525,8 +530,12 @@ kingdom_main() {
 ################################################################################
 
 landscape_init() {
+   # LANDSCAPE_x and LANDSCAPE_y are reserved for events/landmarks/projects/ways
+   # of which there are at max two
    LANDSCAPE_x=''
    LANDSCAPE_y=''
+
+   LANDSCAPE_ALLY=''
 
    LANDSCAPE_BOONS=false
    LANDSCAPE_HEXES=false
@@ -545,23 +554,31 @@ landscape_check() {
       druid|pixie|tracker|fool|bard|blessedvillage|idol|sacredgrove)
          $LANDSCAPE_BOONS || msg "adding 'Boons'"
          LANDSCAPE_BOONS=true ;;
+
+      # Allie's "Liaison" card trigger an "ally".
+      bauble|sycophant|importer|wizards|student|underling|broker|contract|emissary|guildmaster)
+         [ -n "$LANDSCAPE_ALLY" ] || LANDSCAPE_ALLY='ally';;  # generic ally in case it hasn't been specified
    esac
 
    case $CARD_TYPE in
       card|base) ;;
-      landmark|event|project|way)
+
+      ally) LANDSCAPE_ALLY=$CARD_NAME ;;
+
+      landmark|event|project|way|trait)
          if [ -z "$LANDSCAPE_x" ]; then
             msg "assign '$CARD_NAME' to landscape card x"
             LANDSCAPE_x=$CARD_NAME
          elif [ -z "$LANDSCAPE_y" ]; then
             msg "assign '$CARD_NAME' to landscape card y"
-            LANDSCAPE_B=$CARD_NAME
+            LANDSCAPE_y=$CARD_NAME
             [ "$LANDSCAPE_x" = "$LANDSCAPE_y" ] &&
                warn "landscape card x and y are duplicates!"
          else
             die "cannot add card '$CARD_NAME' of type '$CARD_TYPE' because both landscape x & y are already assigned"
          fi
          ;;
+
       *) warn "trying to add '$CARD_NAME' of type '$CARD_TYPE' to the supply" ;;
    esac
 }
@@ -588,25 +605,41 @@ landscape_artifacts() {
 }
 
 landscape_main() {
-   # events/ways/projects landscape cards + boons
+   # first row:
+   #    a row containing at max 2 of those: events/landmarks/projects/ways/traits
+   #    plus possibly: - boon card  (nocturne)
+   #                   - ally card (allies)
+   #                   (if both boon and ally), make two rows => ugly!
    local h=''
    local b='' ; local l=''
    local lx=''; local ly=''
+
    if $LANDSCAPE_BOONS; then
+      if [ -n "$LANDSCAPE_ALLY" ]; then   #in case we get boon and an ally, make extra row
+         landscape_header 'Ally'
+         card_lrow '' "$LANDSCAPE_ALLY" ''
+         LANDSCAPE_ALLY=''
+      fi
       b='boon'
       h='Boons'
       l='<a href="boon.html" class="w3-badge" target="_blank" contenteditable="false">Get Boon</a>'
    fi
-   [ -n "$LANDSCAPE_x" ] && lx='<span class="w3-badge w3-red">x</span>'
-   [ -n "$LANDSCAPE_y" ] && ly='<span class="w3-badge w3-red">y</span>'
-   [ -n "$lx$ly" ]  && h="${h}${h:+ + }Events/Landmarks/Ways/Projects"
-   if [ -n "$h" ]; then
-      landscape_header "$h"
-      card_lrow_labels "$l" "$lx"          "$ly"
-      card_lrow        "$b" "$LANDSCAPE_x" "$LANDSCAPE_y"
+   if [ -n "$LANDSCAPE_ALLY" ]; then
+      b=$LANDSCAPE_ALLY
+      h='Ally'
+      l='Ally'
    fi
 
-   # hexes
+   [ -n "$LANDSCAPE_x" ] && lx='<span class="w3-badge w3-red">x</span>'
+   [ -n "$LANDSCAPE_y" ] && ly='<span class="w3-badge w3-red">y</span>'
+   [ -n "$lx$ly" ]  && h="${h}${h:+ + }Events, Landmarks, Ways, Projects, Traits"
+   if [ -n "$h" ]; then
+      landscape_header "$h"
+      card_lrow_labels "$lx"          "$ly"           "$l"
+      card_lrow        "$LANDSCAPE_x" "$LANDSCAPE_y"  "$b"
+   fi
+
+   # one entire row for Nocturne's hexes
    if $LANDSCAPE_HEXES; then
       l='<a href="hex.html" class="w3-badge" target="_blank" contenteditable="false">Get Hex</a>'
       landscape_header 'Hexes'
@@ -614,6 +647,7 @@ landscape_main() {
       card_lrow_labels "$l" '(double sided)' '(double sided)'
    fi
 
+   # rows as needed for artifacts
    landscape_artifacts
 }
 
@@ -625,6 +659,7 @@ landscape_main() {
 # Mixed Pile:     [x] DarkAges: Knights
 # 5/5 Split Pile: [x] Empires : Catapult,Encampment,Gladiator,Patrician,Settlers
 #                 [x] Promos  : Sauna/Avanto in Promos
+# 4/4/4/4 Splits: [ ] Allies  : Augurs,Clashes,Forts,Odysseys,Townsfolk,Wizards
 # Others Splits : [x] Empires : Castle
 ################################################################################
 
@@ -646,6 +681,12 @@ mixed_check() {
         card_find 'Castles' ;;   # ^-- *castle) ?
      dameanna|damejosephine|damemolly|damenatalie|damesylvia|sirbailey|sirdestry|sirmartin|sirmichael|sirvander)
         card_find 'Knights' ;;   # ^-- sir*|dame*) ?
+     herbgatherer|acolyte|sorceress|sibyl)      card_find 'Augurs'    ;;
+     battleplan|archer|warlord|territory)       card_find 'Clashes'   ;;
+     tent|garrison|hillfort|stronghold)         card_find 'Forts'     ;;
+     oldmap|voyage|sunkentreasure|distantshore) card_find 'Odysseys'  ;;
+     towncrier|blacksmith|miller|elder)         card_find 'Townsfolk' ;;
+     student|conjurer|sorcerer|lich)            card_find 'Wizards'   ;;
    esac
 }
 
@@ -660,9 +701,18 @@ mixed_header() {
 
 mixed_split5() { # 5 "$1" card sitting on top of 5 "$2" cards
    index_get $?
-   mixed_header "${INDEX} $1/$2 (5/5 split)"
+   mixed_header "${INDEX} (5/5 split): $1/$2"
    card_row_labels "${INDEX}.1-5" "${INDEX}.6-10" '' '' ''
    card_row        "$1"           "$2"            '' '' ''
+}
+
+mixed_split4() { # 4x 4 split cards: $1, $2, $3, $4
+   index_get $?
+   local index=$INDEX
+   index_get
+   mixed_header "${index}/${INDEX} (4/4/4/4 split): $1/$2/$3/$4"
+   card_row_labels "${index}.1-4" "${index}.7-10" "${INDEX}.1-4" "${INDEX}.7-10" ''
+   card_row        "$1" "$2" "$3" "$4" ''
 }
 
 mixed_knights() {
@@ -698,8 +748,13 @@ mixed_main() {
    kingdom_hasnt 'Patrician_Emporium'       || mixed_split5 'Patrician'  'Emporium'
    kingdom_hasnt 'Settlers_BustlingVillage' || mixed_split5 'Settlers'   'Bustling Village'
    kingdom_hasnt 'Sauna_Avanto'             || mixed_split5 'Sauna'      'Avanto'
+   kingdom_hasnt 'Augurs'                   || mixed_split4 'Herb Gatherer' 'Acolyte'    'Sorceress'       'Sibyl'
+   kingdom_hasnt 'Clashes'                  || mixed_split4 'Battle Plan'   'Archer'     'Warlord'         'Territory'
+   kingdom_hasnt 'Forts'                    || mixed_split4 'Tent'          'Garrison'   'Hill Fort'       'Stronghold'
+   kingdom_hasnt 'Odysseys'                 || mixed_split4 'Old Map'       'Voyage'     'Sunken Treasure' 'Distant Shore'
+   kingdom_hasnt 'Townsfolk'                || mixed_split4 'Town Crier'    'Blacksmith' 'Miller'          'Elder'
+   kingdom_hasnt 'Wizards'                  || mixed_split4 'Student'       'Conjurer'   'Sorcerer'        'Lich'
 }
-
 
 
 ################################################################################
@@ -722,6 +777,9 @@ mixed_main() {
 # [x] Nocturne  : Exorcist => all 3 spirit piles (Will-o'-Wisp, Imp,  Ghost)
 # [x] Menagerie : Bargain, Cavalry, Demand, Groom, Hostelry, Livery, Paddock
 #                 Ride, Scrap, Sleigh, Stampede, and Supplies =>  Horse (30)
+# [x] Plunder   : Jewelled Egg, Peril, Search, Foray, Pickaxe, Wealthy Village,
+#                 Cutthroat, Looting, Sack of Loot, Invasion, Prosper, Cursed
+#                 => Loot pile (30)
 #
 # cards with no asterisked cost and no text distinguishing them as non-supply:
 # [>] Dark Ages : Shelters     => see players' hand section below
@@ -733,14 +791,17 @@ mixed_main() {
 
 nonsupply_init() {
    NONSUPPLY_HORSES=false
+   NONSUPPLY_LOOT=false
    NONSUPPLY_H1=false
 }
 
 nonsupply_check() {
    case $CARD_NAME in
-      # Horses
       sleigh|supplies|scrap|cavalry|groom|hostelry|livery|paddock|ride|bargain|demand|stampede)
-         NONSUPPLY_HORSES=true ;;
+         NONSUPPLY_HORSES=true ;;       # Horses
+
+     jewelledegg|peril|search|foray|pickaxe|wealthyvillage|cutthroat|looting|sackofloot|invasion|prosper|cursed)
+         NONSUPPLY_LOOT=true ;;
    esac
 }
 
@@ -826,6 +887,23 @@ nonsupply_nocturne() {
    fi
 }
 
+# loots cards in Plunder
+nonsupply_loot() {
+   # 30 (2x15) "Loot" cards, (we need three indexes).
+   $NONSUPPLY_LOOT || return
+
+   local i1; index_get; i1=$INDEX
+   local i2; index_get; i2=$INDEX
+   local i3; index_get; i3=$INDEX
+   nonsupply_header "${i1},${i2},${i3} Loot"
+
+   card_row        amphora     doubloons   endlesschalice figurehead  hammer
+   card_row_labels "${i1}.1,2" "${i1}.3,4" "${i1}.5,6"    "${i1}.7,8" "${i1}.9,10"
+   card_row        insignia    jewels      orb            prizegoat   puzzlebox
+   card_row_labels "${i2}.1,2" "${i2}.3,4" "${i2}.5,6"    "${i2}.7,8" "${i2}.9,10"
+   card_row        sextant     shield      spellscroll    staff       sword
+   card_row_labels "${i3}.1,2" "${i3}.3,4" "${i3}.5,6"    "${i3}.7,8" "${i3}.9,10"
+}
 
 # black market (Promo) + horse (Menagerie) + Dark Ages
 nonsupply_others() {
@@ -878,6 +956,7 @@ nonsupply_others() {
    fi
 }
 
+
 nonsupply_main() {
    # prizes fit in on row (cornucopia)
    nonsupply_prizes
@@ -889,6 +968,9 @@ nonsupply_main() {
    # nocturne has up to five non-supply cards (bat, wish, 3 spirit piles)
    # so display that in one row
    nonsupply_nocturne
+
+   # loot in Plunder fits in own 3 row
+   nonsupply_loot
 
    # and then one row with what's left:
    # - black market (Promo)
@@ -1083,6 +1165,7 @@ mat_init() {
    MAT_COFFERS=false
    MAT_VILLAGERS=false
    MAT_EXILE=false
+   MAT_FAVORS=false
 }
 
 mat_check() {
@@ -1110,6 +1193,10 @@ mat_check() {
    # Exile mat (Menagerie)
    cameltrain|stockpile|transport|banish|bountyhunter|cardinal|invest|coven|displace|gatekeeper|sanctuary|enclave|wayofthecamel|wayoftheworm)
       MAT_EXILE=true ;;
+
+   # Favors mat (Allies)
+   bauble|sycophant|importer|wizards|student|underling|broker|contract|emissary|guildmaster)
+      MAT_FAVORS=true;;
 
    esac
 }
@@ -1182,6 +1269,7 @@ mat_main() {
    $MAT_COFFERS    && set -- "$@" coffers
    $MAT_VILLAGERS  && set -- "$@" villagers
    $MAT_EXILE      && set -- "$@" exilemat
+   $MAT_FAVORS     && set -- "$@" favorsmat
    card_lrows "$@"
 }
 
@@ -1229,6 +1317,9 @@ token_check() {
 
    # coins tokens (cards without coffers/villagers mats)
    pirateship|traderoute|sinisterplot) TOKEN_COIN=true ;;
+     # also liaison for Allies require coin tokens:
+   bauble|sycophant|importer|wizards|student|underling|broker|contract|emissary|guildmaster)
+     TOKEN_COIN=true ;;
 
    # embargo tokens
    embargo) TOKEN_EMBARGO=true ;;

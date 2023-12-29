@@ -98,7 +98,7 @@ card_row() {
 }
 
 
-# display rows of cards (crads given in arguments)
+# display rows of cards (cards given in arguments)
 # each row is filled with 5 cards displayed with card_row function
 card_rows() {
    local c1
