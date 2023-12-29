@@ -41,8 +41,8 @@ card_find() {
            card_name "$1" # <--- get fully qualified name with #
            ;;
         *) card_name "$1"
-           card_find_ 'img/cards' ||
            card_find_ 'img_index' ||
+           card_find_ 'img/cards' ||
            die "cannot find image for '$CARD_NAME'"
            ;;
    esac
@@ -69,7 +69,6 @@ card_find_() {
          *) die "found several images for '$CARD_NAME'" ;;
       esac
    done
-
    CARD_GAME=$(printf %s "$CARD_IMG" | cut -f1 -d_)
 
    # card or special type? (artifact, boon, event, landmark, project, way)
